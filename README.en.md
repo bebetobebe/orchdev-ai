@@ -13,13 +13,11 @@ This is not just a chat panel. The fixed API worker includes a workspace tool br
 
 ## Download
 
-This repository is designed for “open source code + self-packaged VSIX” distribution. You can download the extension from GitHub Releases or build it locally from source.
+You can download the extension from GitHub Releases or build it locally from source.
 
 - Latest release: [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)
 - Direct VSIX download: [orchdev-ai-0.0.1.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.1.vsix)
 - Local build: run `npm run vsix`, then install the generated `orchdev-ai-0.0.1.vsix`
-
-If you do not publish a GitHub Release yet, you can still use the locally generated `.vsix` yourself. Do not commit local `.vsix`, `node_modules`, or `out` artifacts to the source repository.
 
 ## Quick Start
 
