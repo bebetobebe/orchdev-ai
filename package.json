@@ -2,7 +2,7 @@
   "name": "orchdev-ai",
   "displayName": "OrchDev AI",
   "description": "AI code orchestrator for VS Code and Windsurf，用于协调多个执行器完成复杂开发任务。",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "orchdev-ai-local",
   "license": "MIT",
   "repository": {
@@ -39,89 +39,89 @@
   "contributes": {
     "commands": [
       {
-        "command": "ai-dev-orchestrator.start",
+        "command": "orchdev-ai.start",
         "title": "打开编排面板",
         "category": "OrchDev AI",
         "icon": "$(layout)"
       },
       {
-        "command": "ai-dev-orchestrator.openPanel",
+        "command": "orchdev-ai.openPanel",
         "title": "打开编排面板",
         "category": "OrchDev AI",
         "icon": "$(layout)"
       },
       {
-        "command": "ai-dev-orchestrator.newSession",
+        "command": "orchdev-ai.newSession",
         "title": "新建会话",
         "category": "OrchDev AI",
         "icon": "$(add)"
       },
       {
-        "command": "ai-dev-orchestrator.newTask",
+        "command": "orchdev-ai.newTask",
         "title": "新建任务",
         "category": "OrchDev AI",
         "icon": "$(add)"
       },
       {
-        "command": "ai-dev-orchestrator.refreshViews",
+        "command": "orchdev-ai.refreshViews",
         "title": "刷新视图",
         "category": "OrchDev AI",
         "icon": "$(refresh)"
       },
       {
-        "command": "ai-dev-orchestrator.selectSession",
+        "command": "orchdev-ai.selectSession",
         "title": "选择会话",
         "category": "OrchDev AI",
         "icon": "$(check)"
       },
       {
-        "command": "ai-dev-orchestrator.deleteSession",
+        "command": "orchdev-ai.deleteSession",
         "title": "删除会话",
         "category": "OrchDev AI",
         "icon": "$(trash)"
       },
       {
-        "command": "ai-dev-orchestrator.cancelTask",
+        "command": "orchdev-ai.cancelTask",
         "title": "取消任务",
         "category": "OrchDev AI",
         "icon": "$(debug-stop)"
       },
       {
-        "command": "ai-dev-orchestrator.setRelayToken",
+        "command": "orchdev-ai.setRelayToken",
         "title": "设置中继服务令牌",
         "category": "OrchDev AI"
       },
       {
-        "command": "ai-dev-orchestrator.clearRelayToken",
+        "command": "orchdev-ai.clearRelayToken",
         "title": "清除中继服务令牌",
         "category": "OrchDev AI"
       },
       {
-        "command": "ai-dev-orchestrator.setCustomApiKey",
+        "command": "orchdev-ai.setCustomApiKey",
         "title": "设置固定 API 密钥",
         "category": "OrchDev AI",
         "icon": "$(key)"
       },
       {
-        "command": "ai-dev-orchestrator.quickSetupCustomApi",
+        "command": "orchdev-ai.quickSetupCustomApi",
         "title": "启用固定 API",
         "category": "OrchDev AI",
         "icon": "$(wand)"
       },
       {
-        "command": "ai-dev-orchestrator.testCustomApi",
+        "command": "orchdev-ai.testCustomApi",
         "title": "测试固定 API 连接",
         "category": "OrchDev AI",
         "icon": "$(debug-alt)"
       },
       {
-        "command": "ai-dev-orchestrator.createSelfCheckTask",
+        "command": "orchdev-ai.createSelfCheckTask",
         "title": "创建安全自检任务",
         "category": "OrchDev AI",
         "icon": "$(beaker)"
       },
       {
-        "command": "ai-dev-orchestrator.clearCustomApiKey",
+        "command": "orchdev-ai.clearCustomApiKey",
         "title": "清除固定 API 密钥",
         "category": "OrchDev AI",
         "icon": "$(trash)"
@@ -130,21 +130,21 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ai-orchestrator-view-container",
+          "id": "orchdev-ai-view-container",
           "title": "OrchDev AI",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "ai-orchestrator-view-container": [
+      "orchdev-ai-view-container": [
         {
-          "id": "ai-orchestrator-sessions-view",
+          "id": "orchdev-ai-sessions-view",
           "name": "会话",
           "icon": "media/icon.svg"
         },
         {
-          "id": "ai-orchestrator-tasks-view",
+          "id": "orchdev-ai-tasks-view",
           "name": "任务",
           "icon": "media/icon.svg"
         }
@@ -153,131 +153,131 @@
     "menus": {
       "view/title": [
         {
-          "command": "ai-dev-orchestrator.newSession",
-          "when": "view == ai-orchestrator-sessions-view",
+          "command": "orchdev-ai.newSession",
+          "when": "view == orchdev-ai-sessions-view",
           "group": "navigation@1"
         },
         {
-          "command": "ai-dev-orchestrator.openPanel",
-          "when": "view == ai-orchestrator-sessions-view",
+          "command": "orchdev-ai.openPanel",
+          "when": "view == orchdev-ai-sessions-view",
           "group": "navigation@2"
         },
         {
-          "command": "ai-dev-orchestrator.quickSetupCustomApi",
-          "when": "view == ai-orchestrator-sessions-view",
+          "command": "orchdev-ai.quickSetupCustomApi",
+          "when": "view == orchdev-ai-sessions-view",
           "group": "navigation@3"
         },
         {
-          "command": "ai-dev-orchestrator.testCustomApi",
-          "when": "view == ai-orchestrator-sessions-view",
+          "command": "orchdev-ai.testCustomApi",
+          "when": "view == orchdev-ai-sessions-view",
           "group": "navigation@4"
         },
         {
-          "command": "ai-dev-orchestrator.createSelfCheckTask",
-          "when": "view == ai-orchestrator-sessions-view",
+          "command": "orchdev-ai.createSelfCheckTask",
+          "when": "view == orchdev-ai-sessions-view",
           "group": "navigation@5"
         },
         {
-          "command": "ai-dev-orchestrator.refreshViews",
-          "when": "view == ai-orchestrator-sessions-view",
+          "command": "orchdev-ai.refreshViews",
+          "when": "view == orchdev-ai-sessions-view",
           "group": "navigation@9"
         },
         {
-          "command": "ai-dev-orchestrator.newTask",
-          "when": "view == ai-orchestrator-tasks-view",
+          "command": "orchdev-ai.newTask",
+          "when": "view == orchdev-ai-tasks-view",
           "group": "navigation@1"
         },
         {
-          "command": "ai-dev-orchestrator.openPanel",
-          "when": "view == ai-orchestrator-tasks-view",
+          "command": "orchdev-ai.openPanel",
+          "when": "view == orchdev-ai-tasks-view",
           "group": "navigation@2"
         },
         {
-          "command": "ai-dev-orchestrator.quickSetupCustomApi",
-          "when": "view == ai-orchestrator-tasks-view",
+          "command": "orchdev-ai.quickSetupCustomApi",
+          "when": "view == orchdev-ai-tasks-view",
           "group": "navigation@3"
         },
         {
-          "command": "ai-dev-orchestrator.testCustomApi",
-          "when": "view == ai-orchestrator-tasks-view",
+          "command": "orchdev-ai.testCustomApi",
+          "when": "view == orchdev-ai-tasks-view",
           "group": "navigation@4"
         },
         {
-          "command": "ai-dev-orchestrator.createSelfCheckTask",
-          "when": "view == ai-orchestrator-tasks-view",
+          "command": "orchdev-ai.createSelfCheckTask",
+          "when": "view == orchdev-ai-tasks-view",
           "group": "navigation@5"
         },
         {
-          "command": "ai-dev-orchestrator.refreshViews",
-          "when": "view == ai-orchestrator-tasks-view",
+          "command": "orchdev-ai.refreshViews",
+          "when": "view == orchdev-ai-tasks-view",
           "group": "navigation@9"
         }
       ],
       "view/item/context": [
         {
-          "command": "ai-dev-orchestrator.selectSession",
-          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "command": "orchdev-ai.selectSession",
+          "when": "view == orchdev-ai-sessions-view && viewItem == session",
           "group": "inline@1"
         },
         {
-          "command": "ai-dev-orchestrator.openPanel",
-          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "command": "orchdev-ai.openPanel",
+          "when": "view == orchdev-ai-sessions-view && viewItem == session",
           "group": "inline@2"
         },
         {
-          "command": "ai-dev-orchestrator.newTask",
-          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "command": "orchdev-ai.newTask",
+          "when": "view == orchdev-ai-sessions-view && viewItem == session",
           "group": "inline@3"
         },
         {
-          "command": "ai-dev-orchestrator.deleteSession",
-          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "command": "orchdev-ai.deleteSession",
+          "when": "view == orchdev-ai-sessions-view && viewItem == session",
           "group": "inline@9"
         },
         {
-          "command": "ai-dev-orchestrator.cancelTask",
-          "when": "view == ai-orchestrator-tasks-view && viewItem == cancelableTask",
+          "command": "orchdev-ai.cancelTask",
+          "when": "view == orchdev-ai-tasks-view && viewItem == cancelableTask",
           "group": "inline@1"
         },
         {
-          "command": "ai-dev-orchestrator.openPanel",
-          "when": "view == ai-orchestrator-tasks-view && (viewItem == task || viewItem == cancelableTask)",
+          "command": "orchdev-ai.openPanel",
+          "when": "view == orchdev-ai-tasks-view && (viewItem == task || viewItem == cancelableTask)",
           "group": "inline@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "ai-dev-orchestrator.start",
+          "command": "orchdev-ai.start",
           "when": "false"
         },
         {
-          "command": "ai-dev-orchestrator.selectSession",
+          "command": "orchdev-ai.selectSession",
           "when": "false"
         },
         {
-          "command": "ai-dev-orchestrator.deleteSession",
+          "command": "orchdev-ai.deleteSession",
           "when": "false"
         },
         {
-          "command": "ai-dev-orchestrator.cancelTask",
+          "command": "orchdev-ai.cancelTask",
           "when": "false"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "ai-orchestrator-sessions-view",
-        "contents": "还没有会话。\n[打开编排面板](command:ai-dev-orchestrator.openPanel)\n[启用固定 API](command:ai-dev-orchestrator.quickSetupCustomApi)\n[安全自检](command:ai-dev-orchestrator.createSelfCheckTask)\n[新建会话](command:ai-dev-orchestrator.newSession)"
+        "view": "orchdev-ai-sessions-view",
+        "contents": "还没有会话。\n[打开编排面板](command:orchdev-ai.openPanel)\n[启用固定 API](command:orchdev-ai.quickSetupCustomApi)\n[安全自检](command:orchdev-ai.createSelfCheckTask)\n[新建会话](command:orchdev-ai.newSession)"
       },
       {
-        "view": "ai-orchestrator-tasks-view",
-        "contents": "先选择或新建一个会话。\n[打开编排面板](command:ai-dev-orchestrator.openPanel)\n[启用固定 API](command:ai-dev-orchestrator.quickSetupCustomApi)\n[测试固定 API](command:ai-dev-orchestrator.testCustomApi)\n[新建会话](command:ai-dev-orchestrator.newSession)",
-        "when": "!aiDevOrchestrator.hasActiveSession"
+        "view": "orchdev-ai-tasks-view",
+        "contents": "先选择或新建一个会话。\n[打开编排面板](command:orchdev-ai.openPanel)\n[启用固定 API](command:orchdev-ai.quickSetupCustomApi)\n[测试固定 API](command:orchdev-ai.testCustomApi)\n[新建会话](command:orchdev-ai.newSession)",
+        "when": "!orchdevAi.hasActiveSession"
       },
       {
-        "view": "ai-orchestrator-tasks-view",
-        "contents": "当前会话还没有任务。\n[打开编排面板](command:ai-dev-orchestrator.openPanel)\n[新建任务](command:ai-dev-orchestrator.newTask)\n[安全自检](command:ai-dev-orchestrator.createSelfCheckTask)",
-        "when": "aiDevOrchestrator.hasActiveSession"
+        "view": "orchdev-ai-tasks-view",
+        "contents": "当前会话还没有任务。\n[打开编排面板](command:orchdev-ai.openPanel)\n[新建任务](command:orchdev-ai.newTask)\n[安全自检](command:orchdev-ai.createSelfCheckTask)",
+        "when": "orchdevAi.hasActiveSession"
       }
     ],
     "configuration": {

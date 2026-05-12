@@ -16,8 +16,8 @@ This is not just a chat panel. The fixed API worker includes a workspace tool br
 You can download the extension from GitHub Releases or build it locally from source.
 
 - Latest release: [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)
-- Direct VSIX download: [orchdev-ai-0.0.1.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.1.vsix)
-- Local build: run `npm run vsix`, then install the generated `orchdev-ai-0.0.1.vsix`
+- Direct VSIX download: [orchdev-ai-0.0.2.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.2.vsix)
+- Local build: run `npm run vsix`, then install the generated `orchdev-ai-0.0.2.vsix`
 
 ## Community
 
@@ -149,7 +149,7 @@ The orchestrator owns sessions, tasks, states, queues, and recovery policy. Actu
 ### From Release
 
 1. Open [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest).
-2. Download `orchdev-ai-0.0.1.vsix`.
+2. Download `orchdev-ai-0.0.2.vsix`.
 3. In VS Code or Windsurf, choose `Install from VSIX...` from the Extensions view.
 4. Run `OrchDev AI：打开编排面板`.
 
@@ -159,10 +159,16 @@ The orchestrator owns sessions, tasks, states, queues, and recovery policy. Actu
 npm install
 npm run verify
 npm run vsix
-code --install-extension orchdev-ai-0.0.1.vsix
+code --install-extension orchdev-ai-0.0.2.vsix
 ```
 
 Windsurf also supports VSIX installation. If the `code` command is unavailable, run `Shell Command: Install 'code' command in PATH` from the VS Code command palette.
+
+### Installation Troubleshooting
+
+- If you previously installed the legacy `AI 开发编排` package, uninstall it before installing `OrchDev AI`.
+- Keeping both packages installed can make the legacy commands and views compete with the new build, which may look like dead buttons, failed session creation, or mismatched UI state.
+- If the panel still behaves oddly, verify that the installed file is `orchdev-ai-0.0.2.vsix` instead of an older `0.0.1` build.
 
 ## Commands
 

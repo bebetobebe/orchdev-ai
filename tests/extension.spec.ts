@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
     const createTreeView = vi.fn(() => ({ dispose: vi.fn() }));
     const onDidChangeConfiguration = vi.fn(() => ({ dispose: vi.fn() }));
     const onDidChangeWorkspaceFolders = vi.fn(() => ({ dispose: vi.fn() }));
+    const getExtension = vi.fn(() => undefined);
     let workspaceFolders: Array<{ uri: { fsPath: string } }> | undefined = undefined;
     const registerCommand = vi.fn((id: string, handler: (...args: unknown[]) => unknown) => {
         commands.set(id, handler);
@@ -86,6 +87,7 @@ const mocks = vi.hoisted(() => {
         showErrorMessage,
         showInputBox,
         showQuickPick,
+        getExtension,
         createTreeView,
         onDidChangeConfiguration,
         onDidChangeWorkspaceFolders,
@@ -118,6 +120,9 @@ vi.mock('vscode', () => ({
     commands: {
         registerCommand: mocks.registerCommand,
         executeCommand: mocks.executeCommand,
+    },
+    extensions: {
+        getExtension: mocks.getExtension,
     },
     workspace: {
         getConfiguration: mocks.getConfiguration,
@@ -305,7 +310,7 @@ describe('extension commands', () => {
         await activate(createContext());
         const session = Orchestrator.getInstance().createSession('s', 'g')!;
 
-        getCommand('ai-dev-orchestrator.selectSession')(session.id);
+        getCommand('orchdev-ai.selectSession')(session.id);
 
         expect(mocks.mainPanelCurrent.setActiveSession).toHaveBeenCalledWith(session.id);
         expect(mocks.sessionsProviderInstances[0].setActiveSession).toHaveBeenCalledWith(session.id);
@@ -316,7 +321,7 @@ describe('extension commands', () => {
     it('selectSession clears stale selection and warns when the session is missing', async () => {
         await activate(createContext());
 
-        getCommand('ai-dev-orchestrator.selectSession')('ghost');
+        getCommand('orchdev-ai.selectSession')('ghost');
 
         expect(mocks.mainPanelCurrent.setActiveSession).toHaveBeenCalledWith(null);
         expect(mocks.tasksProviderInstances[0].setActiveSession).toHaveBeenCalledWith(null);
@@ -348,7 +353,7 @@ describe('extension commands', () => {
             .mockResolvedValueOnce('侧边栏会话')
             .mockResolvedValueOnce('从侧边栏开始开发');
 
-        await getCommand('ai-dev-orchestrator.newSession')();
+        await getCommand('orchdev-ai.newSession')();
 
         const sessions = Orchestrator.getInstance().getAllSessions();
         expect(sessions).toHaveLength(1);
@@ -364,7 +369,7 @@ describe('extension commands', () => {
         await activate(createContext());
         mocks.showInputBox.mockResolvedValueOnce(undefined);
 
-        await getCommand('ai-dev-orchestrator.newSession')();
+        await getCommand('orchdev-ai.newSession')();
 
         expect(Orchestrator.getInstance().getAllSessions()).toHaveLength(0);
         expect(mocks.mainPanel.createOrShow).not.toHaveBeenCalled();
@@ -373,7 +378,7 @@ describe('extension commands', () => {
     it('newTask warns when there is no active session', async () => {
         await activate(createContext());
 
-        await getCommand('ai-dev-orchestrator.newTask')();
+        await getCommand('orchdev-ai.newTask')();
 
         expect(mocks.showWarningMessage).toHaveBeenCalledWith('请先新建或选择一个会话。');
         expect(mocks.showInputBox).not.toHaveBeenCalled();
@@ -383,11 +388,11 @@ describe('extension commands', () => {
         await activate(createContext());
         const orchestrator = Orchestrator.getInstance();
         const session = orchestrator.createSession('s', 'g')!;
-        getCommand('ai-dev-orchestrator.selectSession')(session.id);
+        getCommand('orchdev-ai.selectSession')(session.id);
         mocks.showInputBox.mockResolvedValueOnce('实现侧边栏入口');
         mocks.showQuickPick.mockResolvedValueOnce({ label: '规划', mode: 'Plan' });
 
-        await getCommand('ai-dev-orchestrator.newTask')();
+        await getCommand('orchdev-ai.newTask')();
 
         const tasks = orchestrator.getTasksForSession(session.id);
         expect(tasks).toHaveLength(1);
@@ -407,7 +412,7 @@ describe('extension commands', () => {
             .mockResolvedValueOnce({ label: '提问', mode: 'Ask' });
         mocks.showInputBox.mockResolvedValueOnce('先分析一下');
 
-        await getCommand('ai-dev-orchestrator.newTask')();
+        await getCommand('orchdev-ai.newTask')();
 
         expect(orchestrator.getTasksForSession(first.id)).toHaveLength(0);
         const tasks = orchestrator.getTasksForSession(second.id);
@@ -424,7 +429,7 @@ describe('extension commands', () => {
         mocks.showInputBox.mockResolvedValueOnce('右键添加任务');
         mocks.showQuickPick.mockResolvedValueOnce({ label: '执行', mode: 'Execute' });
 
-        await getCommand('ai-dev-orchestrator.newTask')({ session });
+        await getCommand('orchdev-ai.newTask')({ session });
 
         const tasks = orchestrator.getTasksForSession(session.id);
         expect(tasks).toHaveLength(1);
@@ -438,7 +443,7 @@ describe('extension commands', () => {
         await activate(createContext());
         const orchestrator = Orchestrator.getInstance();
         const session = orchestrator.createSession('s', 'g')!;
-        getCommand('ai-dev-orchestrator.selectSession')(session.id);
+        getCommand('orchdev-ai.selectSession')(session.id);
         const execute = vi.fn(async () => ({
             summary: 'ok',
             artifacts: [],
@@ -452,7 +457,7 @@ describe('extension commands', () => {
             disconnect: vi.fn(async () => undefined),
         });
 
-        await getCommand('ai-dev-orchestrator.createSelfCheckTask')();
+        await getCommand('orchdev-ai.createSelfCheckTask')();
 
         const tasks = orchestrator.getTasksForSession(session.id);
         expect(tasks).toHaveLength(1);
@@ -468,7 +473,7 @@ describe('extension commands', () => {
         mocks.workspaceFolders = [{ uri: { fsPath: '/repo' } }];
         await activate(createContext());
 
-        await getCommand('ai-dev-orchestrator.createSelfCheckTask')();
+        await getCommand('orchdev-ai.createSelfCheckTask')();
 
         const sessions = Orchestrator.getInstance().getAllSessions();
         expect(sessions).toHaveLength(1);
@@ -482,7 +487,7 @@ describe('extension commands', () => {
     it('createSelfCheckTask warns when no project folder is open', async () => {
         await activate(createContext());
 
-        await getCommand('ai-dev-orchestrator.createSelfCheckTask')();
+        await getCommand('orchdev-ai.createSelfCheckTask')();
 
         expect(Orchestrator.getInstance().getAllSessions()).toHaveLength(0);
         expect(mocks.showWarningMessage).toHaveBeenCalledWith('请先打开一个项目文件夹，再创建安全自检任务。自检需要验证项目文件读取和写入能力。');
@@ -491,7 +496,7 @@ describe('extension commands', () => {
     it('refreshViews refreshes both tree providers', async () => {
         await activate(createContext());
 
-        getCommand('ai-dev-orchestrator.refreshViews')();
+        getCommand('orchdev-ai.refreshViews')();
 
         expect(mocks.sessionsProviderInstances[0].refresh).toHaveBeenCalled();
         expect(mocks.tasksProviderInstances[0].refresh).toHaveBeenCalled();
@@ -501,7 +506,7 @@ describe('extension commands', () => {
         await activate(createContext());
         const session = Orchestrator.getInstance().createSession('s', 'g')!;
 
-        getCommand('ai-dev-orchestrator.openPanel')({ task: { sessionId: session.id } });
+        getCommand('orchdev-ai.openPanel')({ task: { sessionId: session.id } });
 
         expect(mocks.mainPanel.createOrShow).toHaveBeenCalledWith({ path: '/extension', fsPath: '/extension' });
         expect(mocks.sessionsProviderInstances[0].setActiveSession).toHaveBeenCalledWith(session.id);
@@ -511,7 +516,7 @@ describe('extension commands', () => {
     it('deleteSession warns when the session is missing', async () => {
         await activate(createContext());
 
-        await getCommand('ai-dev-orchestrator.deleteSession')('ghost');
+        await getCommand('orchdev-ai.deleteSession')('ghost');
 
         expect(mocks.showWarningMessage).toHaveBeenCalledWith('未找到要删除的会话。');
     });
@@ -520,7 +525,7 @@ describe('extension commands', () => {
         await activate(createContext());
         const session = Orchestrator.getInstance().createSession('s', 'g')!;
 
-        await getCommand('ai-dev-orchestrator.deleteSession')(session.id);
+        await getCommand('orchdev-ai.deleteSession')(session.id);
 
         expect(Orchestrator.getInstance().getSession(session.id)).toBeDefined();
         expect(mocks.showWarningMessage).toHaveBeenCalledWith(
@@ -535,7 +540,7 @@ describe('extension commands', () => {
         const session = Orchestrator.getInstance().createSession('s', 'g')!;
         mocks.showWarningMessage.mockResolvedValueOnce('删除');
 
-        await getCommand('ai-dev-orchestrator.deleteSession')(session.id);
+        await getCommand('orchdev-ai.deleteSession')(session.id);
 
         expect(Orchestrator.getInstance().getSession(session.id)).toBeUndefined();
     });
@@ -545,10 +550,10 @@ describe('extension commands', () => {
         const orchestrator = Orchestrator.getInstance();
         const first = orchestrator.createSession('first', 'g1')!;
         const second = orchestrator.createSession('second', 'g2')!;
-        getCommand('ai-dev-orchestrator.selectSession')(first.id);
+        getCommand('orchdev-ai.selectSession')(first.id);
         mocks.showWarningMessage.mockResolvedValueOnce('删除');
 
-        await getCommand('ai-dev-orchestrator.deleteSession')(first.id);
+        await getCommand('orchdev-ai.deleteSession')(first.id);
 
         expect(orchestrator.getSession(first.id)).toBeUndefined();
         expect(mocks.sessionsProviderInstances[0].setActiveSession).toHaveBeenLastCalledWith(second.id);
@@ -558,7 +563,7 @@ describe('extension commands', () => {
     it('cancelTask warns when the task is missing', async () => {
         await activate(createContext());
 
-        getCommand('ai-dev-orchestrator.cancelTask')('ghost-task');
+        getCommand('orchdev-ai.cancelTask')('ghost-task');
 
         expect(mocks.showWarningMessage).toHaveBeenCalledWith('未找到要取消的任务。');
     });
@@ -570,7 +575,7 @@ describe('extension commands', () => {
         const task = orchestrator.createTask(session.id, 'done', 'Ask')!;
         orchestrator.cancelTask(task.id);
 
-        getCommand('ai-dev-orchestrator.cancelTask')(task.id);
+        getCommand('orchdev-ai.cancelTask')(task.id);
 
         expect(mocks.showWarningMessage).toHaveBeenCalledWith('任务已无法取消。');
     });
@@ -604,7 +609,7 @@ describe('extension SecretStorage relay token', () => {
         await activate(createContext(secrets));
 
         mocks.showInputBox.mockResolvedValueOnce('sk-new');
-        await getCommand('ai-dev-orchestrator.setRelayToken')();
+        await getCommand('orchdev-ai.setRelayToken')();
 
         expect(secrets.store).toHaveBeenCalledWith('aiDevOrchestrator.relay.authToken', 'sk-new');
         expect(secrets._store.get('aiDevOrchestrator.relay.authToken')).toBe('sk-new');
@@ -616,7 +621,7 @@ describe('extension SecretStorage relay token', () => {
         await activate(createContext(secrets));
 
         mocks.showInputBox.mockResolvedValueOnce(undefined);
-        await getCommand('ai-dev-orchestrator.setRelayToken')();
+        await getCommand('orchdev-ai.setRelayToken')();
 
         expect(secrets.store).not.toHaveBeenCalled();
         expect(mocks.showInformationMessage).not.toHaveBeenCalled();
@@ -627,7 +632,7 @@ describe('extension SecretStorage relay token', () => {
         await activate(createContext(secrets));
 
         mocks.showInputBox.mockResolvedValueOnce('');
-        await getCommand('ai-dev-orchestrator.setRelayToken')();
+        await getCommand('orchdev-ai.setRelayToken')();
 
         expect(secrets.store).not.toHaveBeenCalled();
         expect(mocks.showWarningMessage).toHaveBeenCalledWith(expect.stringMatching(/未保存空令牌/));
@@ -639,7 +644,7 @@ describe('extension SecretStorage relay token', () => {
         secrets.store.mockClear();
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.clearRelayToken')();
+        await getCommand('orchdev-ai.clearRelayToken')();
 
         expect(secrets.delete).toHaveBeenCalledWith('aiDevOrchestrator.relay.authToken');
         expect(secrets._store.has('aiDevOrchestrator.relay.authToken')).toBe(false);
@@ -650,7 +655,7 @@ describe('extension SecretStorage relay token', () => {
         const secrets = makeFakeSecrets();
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.clearRelayToken')();
+        await getCommand('orchdev-ai.clearRelayToken')();
 
         expect(secrets.delete).not.toHaveBeenCalled();
         expect(mocks.showInformationMessage).toHaveBeenCalledWith(expect.stringMatching(/当前没有保存中继服务令牌/));
@@ -661,7 +666,7 @@ describe('extension SecretStorage relay token', () => {
         await activate(createContext(secrets));
 
         mocks.showInputBox.mockResolvedValueOnce('sk-custom');
-        await getCommand('ai-dev-orchestrator.setCustomApiKey')();
+        await getCommand('orchdev-ai.setCustomApiKey')();
 
         expect(secrets.store).toHaveBeenCalledWith('aiDevOrchestrator.customApi.apiKey', 'sk-custom');
         expect(secrets._store.get('aiDevOrchestrator.customApi.apiKey')).toBe('sk-custom');
@@ -681,7 +686,7 @@ describe('extension SecretStorage relay token', () => {
 
         mocks.showInputBox.mockResolvedValueOnce('sk-quick-setup');
 
-        await getCommand('ai-dev-orchestrator.quickSetupCustomApi')();
+        await getCommand('orchdev-ai.quickSetupCustomApi')();
 
         expect(mocks.configUpdate).not.toHaveBeenCalled();
         expect(secrets.store).toHaveBeenCalledWith('aiDevOrchestrator.customApi.apiKey', 'sk-quick-setup');
@@ -700,7 +705,7 @@ describe('extension SecretStorage relay token', () => {
         useFixedApiConfig({ baseUrl: '', model: '' });
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.quickSetupCustomApi')();
+        await getCommand('orchdev-ai.quickSetupCustomApi')();
 
         expect(mocks.showWarningMessage).toHaveBeenCalledWith(expect.stringContaining('fixedApiConfig.ts'));
         expect(mocks.showInputBox).not.toHaveBeenCalled();
@@ -721,7 +726,7 @@ describe('extension SecretStorage relay token', () => {
 
         mocks.showInputBox.mockResolvedValueOnce('');
 
-        await getCommand('ai-dev-orchestrator.quickSetupCustomApi')();
+        await getCommand('orchdev-ai.quickSetupCustomApi')();
 
         expect(secrets.delete).toHaveBeenCalledWith('aiDevOrchestrator.customApi.apiKey');
         expect(mocks.showWarningMessage).not.toHaveBeenCalledWith(expect.stringMatching(/需要密钥/));
@@ -751,7 +756,7 @@ describe('extension SecretStorage relay token', () => {
         vi.stubGlobal('fetch', fetchMock);
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.testCustomApi')();
+        await getCommand('orchdev-ai.testCustomApi')();
 
         expect(fetchMock).toHaveBeenCalledWith('https://api.deepseek.com/v1/chat/completions', expect.objectContaining({
             method: 'POST',
@@ -810,7 +815,7 @@ describe('extension SecretStorage relay token', () => {
         vi.stubGlobal('fetch', fetchMock);
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.testCustomApi')();
+        await getCommand('orchdev-ai.testCustomApi')();
 
         expect(fetchMock).toHaveBeenCalledWith('https://mintapi.cn/v1/responses', expect.objectContaining({
             method: 'POST',
@@ -849,7 +854,7 @@ describe('extension SecretStorage relay token', () => {
         vi.stubGlobal('fetch', fetchMock);
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.testCustomApi')();
+        await getCommand('orchdev-ai.testCustomApi')();
 
         expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(mocks.mainPanel.updateCustomApiHealth).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -886,7 +891,7 @@ describe('extension SecretStorage relay token', () => {
         vi.stubGlobal('fetch', fetchMock);
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.testCustomApi')();
+        await getCommand('orchdev-ai.testCustomApi')();
 
         expect(fetchMock).toHaveBeenCalledTimes(3);
         expect(JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string).tool_choice).toBeTruthy();
@@ -921,7 +926,7 @@ describe('extension SecretStorage relay token', () => {
         vi.stubGlobal('fetch', fetchMock);
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.testCustomApi')();
+        await getCommand('orchdev-ai.testCustomApi')();
 
         expect(mocks.mainPanel.updateCustomApiHealth).toHaveBeenLastCalledWith(expect.objectContaining({
             status: 'ok',
@@ -943,7 +948,7 @@ describe('extension SecretStorage relay token', () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response('bad key', { status: 401, statusText: 'Unauthorized' })));
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.testCustomApi')();
+        await getCommand('orchdev-ai.testCustomApi')();
 
         expect(mocks.mainPanel.updateCustomApiHealth).toHaveBeenLastCalledWith(expect.objectContaining({
             status: 'failed',
@@ -960,7 +965,7 @@ describe('extension SecretStorage relay token', () => {
         secrets.store.mockClear();
         await activate(createContext(secrets));
 
-        await getCommand('ai-dev-orchestrator.clearCustomApiKey')();
+        await getCommand('orchdev-ai.clearCustomApiKey')();
 
         expect(secrets.delete).toHaveBeenCalledWith('aiDevOrchestrator.customApi.apiKey');
         expect(secrets._store.has('aiDevOrchestrator.customApi.apiKey')).toBe(false);

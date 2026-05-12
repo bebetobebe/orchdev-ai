@@ -37,7 +37,7 @@ README 中的下载链接默认使用：
 
 ```text
 https://github.com/bebetobebe/orchdev-ai/releases/latest
-https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.1.vsix
+https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.2.vsix
 ```
 
 发布 `.vsix` 时，建议把文件名保持为 `orchdev-ai-版本号.vsix`，方便 README、Release Notes 和用户安装说明长期一致。

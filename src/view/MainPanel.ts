@@ -20,6 +20,7 @@ import {
 } from '../orchestrator/Orchestrator';
 import { exportSessionMarkdown } from '../orchestrator/exportSession';
 import { BRAND } from '../config/branding';
+import { COMMAND_IDS, VIEW_IDS } from '../constants/ids';
 import type { CustomApiHealthSnapshot, RelayHealthSnapshot, Task, Worker } from '../types';
 
 const CONFIG_NS = 'aiDevOrchestrator';
@@ -70,7 +71,7 @@ export class MainPanel {
         }
 
         const panel = vscode.window.createWebviewPanel(
-            'aiDevOrchestrator',
+            VIEW_IDS.panel,
             BRAND.extensionDisplayName,
             column || vscode.ViewColumn.One,
             {
@@ -122,7 +123,7 @@ export class MainPanel {
                             this._activeSessionId = createdSessionOutcome.session.id;
                             this.update();
                             void this._postWebviewMessage({ type: 'clearSessionCreator' });
-                            void vscode.commands.executeCommand('ai-dev-orchestrator.selectSession', createdSessionOutcome.session.id);
+                            void vscode.commands.executeCommand(COMMAND_IDS.selectSession, createdSessionOutcome.session.id);
                         } else {
                             this._handleCreateSessionResult(createdSessionOutcome);
                         }
@@ -167,7 +168,7 @@ export class MainPanel {
                         }
                         this._activeSessionId = message.data.sessionId;
                         this.update();
-                        vscode.commands.executeCommand('ai-dev-orchestrator.selectSession', message.data.sessionId);
+                        vscode.commands.executeCommand(COMMAND_IDS.selectSession, message.data.sessionId);
                         return;
                     case 'create-task': {
                         void this._handleCreateTaskMessage(message.data);
@@ -305,21 +306,21 @@ export class MainPanel {
                         void vscode.commands.executeCommand('workbench.action.openSettings', CONFIG_NS);
                         return;
                     case 'quick-setup-custom-api':
-                        void vscode.commands.executeCommand('ai-dev-orchestrator.quickSetupCustomApi');
+                        void vscode.commands.executeCommand(COMMAND_IDS.quickSetupCustomApi);
                         return;
                     case 'test-custom-api':
-                        void vscode.commands.executeCommand('ai-dev-orchestrator.testCustomApi');
+                        void vscode.commands.executeCommand(COMMAND_IDS.testCustomApi);
                         return;
                     case 'create-self-check-task':
                         void this._runWithActionState(
                             this._appActionKey('self-check'),
                             async () => {
-                                await vscode.commands.executeCommand('ai-dev-orchestrator.createSelfCheckTask');
+                                await vscode.commands.executeCommand(COMMAND_IDS.createSelfCheckTask);
                             }
                         );
                         return;
                     case 'set-custom-api-key':
-                        void vscode.commands.executeCommand('ai-dev-orchestrator.setCustomApiKey');
+                        void vscode.commands.executeCommand(COMMAND_IDS.setCustomApiKey);
                         return;
                     case 'open-workspace-file':
                         void this._openWorkspaceFile(message.data?.path);
@@ -447,7 +448,7 @@ export class MainPanel {
             if (createdSession.session) {
                 this._activeSessionId = createdSession.session.id;
                 this.update();
-                void vscode.commands.executeCommand('ai-dev-orchestrator.selectSession', createdSession.session.id);
+                void vscode.commands.executeCommand(COMMAND_IDS.selectSession, createdSession.session.id);
             } else {
                 this._handleCreateSessionResult(createdSession);
                 return;
@@ -919,7 +920,7 @@ export class MainPanel {
                                 </div>
                                 <input type="text" id="session-name-input" placeholder="会话名称"/>
                                 <input type="text" id="session-goal-input" placeholder="会话目标"/>
-                                <button id="create-session-btn"><i class="codicon codicon-add"></i><span>创建会话</span></button>
+                                <button id="create-session-btn" type="button"><i class="codicon codicon-add"></i><span>创建会话</span></button>
                             </section>
                         </aside>
 

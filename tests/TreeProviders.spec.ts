@@ -84,7 +84,7 @@ describe('SessionsTreeProvider', () => {
         const items = provider.getChildren();
 
         expect(items[0].command).toEqual({
-            command: 'ai-dev-orchestrator.selectSession',
+            command: 'orchdev-ai.selectSession',
             title: '选择会话',
             arguments: [s1.id],
         });
@@ -107,7 +107,7 @@ describe('SessionsTreeProvider', () => {
         expect(items[0].description).toBe('点这里新建一个会话');
         expect((items[0].iconPath as ThemeIcon).id).toBe('add');
         expect(items[0].command).toEqual({
-            command: 'ai-dev-orchestrator.newSession',
+            command: 'orchdev-ai.newSession',
             title: '新建会话',
         });
     });
@@ -141,7 +141,7 @@ describe('TasksTreeProvider', () => {
         expect(items[0].description).toBe('点击开始');
         expect((items[0].iconPath as ThemeIcon).id).toBe('add');
         expect(items[0].command).toEqual({
-            command: 'ai-dev-orchestrator.newSession',
+            command: 'orchdev-ai.newSession',
             title: '新建会话',
         });
     });
@@ -169,7 +169,7 @@ describe('TasksTreeProvider', () => {
         expect(items[0].description).toBe('添加到当前会话');
         expect((items[0].iconPath as ThemeIcon).id).toBe('add');
         expect(items[0].command).toEqual({
-            command: 'ai-dev-orchestrator.newTask',
+            command: 'orchdev-ai.newTask',
             title: '新建任务',
         });
     });
@@ -200,7 +200,7 @@ describe('TasksTreeProvider', () => {
 
         const items = provider.getChildren();
         expect(items[0].command).toEqual({
-            command: 'ai-dev-orchestrator.openPanel',
+            command: 'orchdev-ai.openPanel',
             title: '打开编排面板',
             arguments: [t1],
         });

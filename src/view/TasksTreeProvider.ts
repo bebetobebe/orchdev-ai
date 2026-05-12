@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Orchestrator } from '../orchestrator/Orchestrator';
+import { COMMAND_IDS } from '../constants/ids';
 import { Task } from '../types';
 
 function modeLabel(mode: Task['mode']): string {
@@ -85,7 +86,7 @@ class TaskItem extends vscode.TreeItem {
             this.description = '点击开始';
             this.iconPath = new vscode.ThemeIcon('add');
             this.command = {
-                command: 'ai-dev-orchestrator.newSession',
+                command: COMMAND_IDS.newSession,
                 title: '新建会话',
             };
             return;
@@ -94,7 +95,7 @@ class TaskItem extends vscode.TreeItem {
             this.description = '添加到当前会话';
             this.iconPath = new vscode.ThemeIcon('add');
             this.command = {
-                command: 'ai-dev-orchestrator.newTask',
+                command: COMMAND_IDS.newTask,
                 title: '新建任务',
             };
             return;
@@ -102,7 +103,7 @@ class TaskItem extends vscode.TreeItem {
         this.description = statusLabel(task.status);
         this.tooltip = `${task.prompt}\n模式：${modeLabel(task.mode)}\n状态：${statusLabel(task.status)}`;
         this.command = {
-            command: 'ai-dev-orchestrator.openPanel',
+            command: COMMAND_IDS.openPanel,
             title: '打开编排面板',
             arguments: [task],
         };

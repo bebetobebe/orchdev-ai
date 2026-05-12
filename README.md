@@ -16,8 +16,8 @@ OrchDev AI 是一个面向 VS Code 和 Windsurf 的本地开发编排扩展。�
 安装包可以从 GitHub Release 下载，也可以从源码本地打包。
 
 - 最新版本：[GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)
-- 直接下载 VSIX：[orchdev-ai-0.0.1.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.1.vsix)
-- 本地构建：运行 `npm run vsix` 后安装生成的 `orchdev-ai-0.0.1.vsix`
+- 直接下载 VSIX：[orchdev-ai-0.0.2.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.2.vsix)
+- 本地构建：运行 `npm run vsix` 后安装生成的 `orchdev-ai-0.0.2.vsix`
 
 ## 交流群
 
@@ -149,7 +149,7 @@ flowchart LR
 ### 从 Release 安装
 
 1. 打开 [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)。
-2. 下载 `orchdev-ai-0.0.1.vsix`。
+2. 下载 `orchdev-ai-0.0.2.vsix`。
 3. 在 VS Code 或 Windsurf 的扩展面板选择 `Install from VSIX...`。
 4. 安装后运行 `OrchDev AI：打开编排面板`。
 
@@ -159,10 +159,16 @@ flowchart LR
 npm install
 npm run verify
 npm run vsix
-code --install-extension orchdev-ai-0.0.1.vsix
+code --install-extension orchdev-ai-0.0.2.vsix
 ```
 
 Windsurf 同样支持从 VSIX 安装。如果终端没有 `code` 命令，可以在 VS Code 命令面板运行 `Shell Command: Install 'code' command in PATH`。
+
+### 安装排障
+
+- 如果你之前装过旧版 `AI 开发编排`，请先卸载旧版，再安装当前 `OrchDev AI`。
+- `AI 开发编排` 与 `OrchDev AI` 同时存在时，旧命令和旧侧边栏入口可能会与新版本冲突，表现为按钮点击没反应、会话创建失败或界面状态不一致。
+- 升级后如果仍然异常，优先确认安装文件名是否为 `orchdev-ai-0.0.2.vsix`，不要继续使用旧的 `0.0.1` 包。
 
 ## 常用命令
 

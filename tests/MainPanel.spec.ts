@@ -394,11 +394,11 @@ describe('MainPanel', () => {
         post('set-custom-api-key', {});
         await settleAction();
 
-        expect(mocks.executeCommand).toHaveBeenCalledWith('ai-dev-orchestrator.quickSetupCustomApi');
-        expect(mocks.executeCommand).toHaveBeenCalledWith('ai-dev-orchestrator.testCustomApi');
-        expect(mocks.executeCommand).toHaveBeenCalledWith('ai-dev-orchestrator.createSelfCheckTask');
+        expect(mocks.executeCommand).toHaveBeenCalledWith('orchdev-ai.quickSetupCustomApi');
+        expect(mocks.executeCommand).toHaveBeenCalledWith('orchdev-ai.testCustomApi');
+        expect(mocks.executeCommand).toHaveBeenCalledWith('orchdev-ai.createSelfCheckTask');
         expect(mocks.executeCommand).toHaveBeenCalledWith('workbench.action.openSettings', 'aiDevOrchestrator');
-        expect(mocks.executeCommand).toHaveBeenCalledWith('ai-dev-orchestrator.setCustomApiKey');
+        expect(mocks.executeCommand).toHaveBeenCalledWith('orchdev-ai.setCustomApiKey');
         expect(postMessage).toHaveBeenCalledWith({ type: 'setActionState', actionKey: 'app:self-check', pending: true });
         expect(postMessage).toHaveBeenCalledWith({ type: 'setActionState', actionKey: 'app:self-check', pending: false });
     });
@@ -449,7 +449,7 @@ describe('MainPanel', () => {
         await settleAction();
 
         expect(mocks.showWarningMessage).toHaveBeenCalledWith('未找到要选择的会话。');
-        expect(mocks.executeCommand).not.toHaveBeenCalledWith('ai-dev-orchestrator.selectSession', 'ghost');
+        expect(mocks.executeCommand).not.toHaveBeenCalledWith('orchdev-ai.selectSession', 'ghost');
     });
 
     it('posts action-state lifecycle around toggle-auto-chain', async () => {

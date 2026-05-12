@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Orchestrator } from '../orchestrator/Orchestrator';
+import { COMMAND_IDS } from '../constants/ids';
 import { Session } from '../types';
 
 export class SessionsTreeProvider implements vscode.TreeDataProvider<SessionItem> {
@@ -48,7 +49,7 @@ class SessionItem extends vscode.TreeItem {
             this.description = session.goal;
             this.iconPath = new vscode.ThemeIcon('add');
             this.command = {
-                command: 'ai-dev-orchestrator.newSession',
+                command: COMMAND_IDS.newSession,
                 title: '新建会话',
             };
             return;
@@ -58,7 +59,7 @@ class SessionItem extends vscode.TreeItem {
         this.contextValue = 'session';
         this.iconPath = new vscode.ThemeIcon(isActive ? 'folder-opened' : 'folder');
         this.command = {
-            command: 'ai-dev-orchestrator.selectSession',
+            command: COMMAND_IDS.selectSession,
             title: '选择会话',
             arguments: [session.id]
         };

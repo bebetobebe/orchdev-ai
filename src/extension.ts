@@ -14,6 +14,7 @@ import { RELAY_CONFIG } from './config/relayConfig';
 import { RelayHealthMonitor } from './orchestrator/relayHealthMonitor';
 import { SessionsTreeProvider } from './view/SessionsTreeProvider';
 import { TasksTreeProvider } from './view/TasksTreeProvider';
+import { COMMAND_IDS, CONTEXT_KEYS, EXTENSION_IDS, VIEW_IDS } from './constants/ids';
 import type { CustomApiHealthSnapshot, Task, Worker, WorkerCapability } from './types';
 
 const STATE_KEY = 'ai-dev-orchestrator.state';
@@ -47,6 +48,7 @@ const DEFAULT_FIXED_API_NAME = '固定 API';
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
 
 	console.log('OrchDev AI 扩展已启动。');
+	warnAboutLegacyInstall();
 
 	const orchestrator = Orchestrator.getInstance();
 
@@ -90,11 +92,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 	const tasksProvider = new TasksTreeProvider();
 	let activeSessionId: string | null = null;
 
-	const sessionsView = vscode.window.createTreeView('ai-orchestrator-sessions-view', {
+	const sessionsView = vscode.window.createTreeView(VIEW_IDS.sessions, {
 		treeDataProvider: sessionsProvider,
 		showCollapseAll: true
 	});
-	const tasksView = vscode.window.createTreeView('ai-orchestrator-tasks-view', {
+	const tasksView = vscode.window.createTreeView(VIEW_IDS.tasks, {
 		treeDataProvider: tasksProvider,
 		showCollapseAll: true
 	});
@@ -107,8 +109,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 	};
 
 	const updateViewContext = () => {
-		void vscode.commands.executeCommand('setContext', 'aiDevOrchestrator.hasSessions', orchestrator.getAllSessions().length > 0);
-		void vscode.commands.executeCommand('setContext', 'aiDevOrchestrator.hasActiveSession', Boolean(activeSessionId && orchestrator.getSession(activeSessionId)));
+		void vscode.commands.executeCommand('setContext', CONTEXT_KEYS.hasSessions, orchestrator.getAllSessions().length > 0);
+		void vscode.commands.executeCommand('setContext', CONTEXT_KEYS.hasActiveSession, Boolean(activeSessionId && orchestrator.getSession(activeSessionId)));
 	};
 
 	const syncActiveSession = (sessionId: string | null): string | null => {
@@ -217,16 +219,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 		// Register commands
 	context.subscriptions.push(
-		vscode.commands.registerCommand('ai-dev-orchestrator.start', () => {
+		vscode.commands.registerCommand(COMMAND_IDS.start, () => {
 			openPanel();
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.openPanel', (target?: unknown) => {
+		vscode.commands.registerCommand(COMMAND_IDS.openPanel, (target?: unknown) => {
 			openPanel(target);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.refreshViews', () => {
+		vscode.commands.registerCommand(COMMAND_IDS.refreshViews, () => {
 			refreshViews();
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.newSession', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.newSession, async () => {
 			const name = await vscode.window.showInputBox({
 				ignoreFocusOut: true,
 				prompt: '输入会话名称',
@@ -250,7 +252,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			openPanel();
 			void vscode.window.showInformationMessage(`已创建会话：${outcome.session.name}`);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.newTask', async (target?: unknown) => {
+		vscode.commands.registerCommand(COMMAND_IDS.newTask, async (target?: unknown) => {
 			const targetSessionId = getSessionIdFromArgument(target);
 			if (targetSessionId) {
 				syncActiveSession(targetSessionId);
@@ -304,7 +306,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			openPanel();
 			void vscode.window.showInformationMessage('任务已添加到当前会话。');
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.selectSession', (target?: unknown) => {
+		vscode.commands.registerCommand(COMMAND_IDS.selectSession, (target?: unknown) => {
 			const sessionId = getSessionIdFromArgument(target);
 			if (!sessionId) {
 				syncActiveSession(null);
@@ -318,7 +320,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			}
 			syncActiveSession(sessionId);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.deleteSession', async (target?: unknown) => {
+		vscode.commands.registerCommand(COMMAND_IDS.deleteSession, async (target?: unknown) => {
 			const sessionId = getSessionIdFromArgument(target);
 			if (!sessionId) {
 				void vscode.window.showWarningMessage('未找到要删除的会话。');
@@ -345,7 +347,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 				syncActiveSession(getFallbackSessionId(sessionId));
 			}
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.cancelTask', (target?: unknown) => {
+		vscode.commands.registerCommand(COMMAND_IDS.cancelTask, (target?: unknown) => {
 			const taskId = getTaskIdFromArgument(target);
 			if (!taskId) {
 				void vscode.window.showWarningMessage('未找到要取消的任务。');
@@ -363,7 +365,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 					return;
 			}
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.setRelayToken', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.setRelayToken, async () => {
 			const current = await context.secrets.get(SECRET_KEY_RELAY_TOKEN);
 			const value = await vscode.window.showInputBox({
 				password: true,
@@ -380,7 +382,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			await context.secrets.store(SECRET_KEY_RELAY_TOKEN, value);
 			void vscode.window.showInformationMessage(`${RELAY_CONFIG.brandName} 令牌已保存到系统密钥存储。`);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.clearRelayToken', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.clearRelayToken, async () => {
 			const current = await context.secrets.get(SECRET_KEY_RELAY_TOKEN);
 			if (!current) {
 				void vscode.window.showInformationMessage('当前没有保存中继服务令牌。');
@@ -389,7 +391,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			await context.secrets.delete(SECRET_KEY_RELAY_TOKEN);
 			void vscode.window.showInformationMessage(`${RELAY_CONFIG.brandName} 令牌已清除。`);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.setCustomApiKey', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.setCustomApiKey, async () => {
 			const fixedApi = getResolvedFixedApiConfig();
 			const current = await context.secrets.get(SECRET_KEY_CUSTOM_API_KEY);
 			const value = await vscode.window.showInputBox({
@@ -408,20 +410,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			await reconcileFromContext(orchestrator, context.secrets);
 			void vscode.window.showInformationMessage('固定 API 密钥已保存到系统密钥存储。');
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.quickSetupCustomApi', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.quickSetupCustomApi, async () => {
 			await quickSetupCustomApi(context.secrets, orchestrator, openPanel);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.testCustomApi', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.testCustomApi, async () => {
 			await testCustomApiConnection(context.secrets);
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.createSelfCheckTask', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.createSelfCheckTask, async () => {
 			await createSelfCheckTask(orchestrator, {
 				getActiveSessionId: () => activeSessionId,
 				syncActiveSession,
 				openPanel,
 			});
 		}),
-		vscode.commands.registerCommand('ai-dev-orchestrator.clearCustomApiKey', async () => {
+		vscode.commands.registerCommand(COMMAND_IDS.clearCustomApiKey, async () => {
 			const current = await context.secrets.get(SECRET_KEY_CUSTOM_API_KEY);
 			if (!current) {
 				void vscode.window.showInformationMessage('当前没有保存固定 API 密钥。');
@@ -431,6 +433,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			await reconcileFromContext(orchestrator, context.secrets);
 			void vscode.window.showInformationMessage('固定 API 密钥已清除。');
 		})
+	);
+}
+
+function warnAboutLegacyInstall(): void {
+	const legacyExtension = (vscode as typeof vscode & {
+		extensions?: { getExtension: (id: string) => unknown };
+	}).extensions?.getExtension(EXTENSION_IDS.legacy);
+	if (!legacyExtension) {
+		return;
+	}
+	void vscode.window.showWarningMessage(
+		'检测到旧版“AI 开发编排”仍在安装列表中。建议先卸载旧版，只保留当前 OrchDev AI，否则两个版本可能会互相抢命令和视图，出现按钮无响应、会话状态错乱等问题。'
 	);
 }
 

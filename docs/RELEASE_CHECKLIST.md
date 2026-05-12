@@ -53,7 +53,7 @@
 ## 6. GitHub Release
 
 - [ ] `package.json` 的 `version` 已更新。
-- [ ] Tag 格式为 `v版本号`，例如 `v0.0.1`。
+- [ ] Tag 格式为 `v版本号`，例如 `v0.0.2`。
 - [ ] Release 标题与 Tag 一致。
 - [ ] Release Notes 使用 `CHANGELOG.md` 对应版本内容。
 - [ ] Release 附件只上传当前版本 `.vsix`。
