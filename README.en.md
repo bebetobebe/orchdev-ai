@@ -19,6 +19,10 @@ You can download the extension from GitHub Releases or build it locally from sou
 - Direct VSIX download: [orchdev-ai-0.0.1.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.1.vsix)
 - Local build: run `npm run vsix`, then install the generated `orchdev-ai-0.0.1.vsix`
 
+## Community
+
+- QQ group: `1058933735`
+
 ## Quick Start
 
 1. Install the VSIX.

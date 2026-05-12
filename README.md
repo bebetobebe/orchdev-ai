@@ -19,6 +19,10 @@ OrchDev AI 是一个面向 VS Code 和 Windsurf 的本地开发编排扩展。�
 - 直接下载 VSIX：[orchdev-ai-0.0.1.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.1.vsix)
 - 本地构建：运行 `npm run vsix` 后安装生成的 `orchdev-ai-0.0.1.vsix`
 
+## 交流群
+
+- QQ 群：`1058933735`
+
 ## 快速开始
 
 1. 安装 VSIX。
