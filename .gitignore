@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+
+# 构建产物
+out/
+*.vsix
+*.tsbuildinfo
+
+# 编辑器和系统文件
+.vscode/
+.vscode-test/
+.windsurf/
+.DS_Store
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

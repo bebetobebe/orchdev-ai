@@ -1,0 +1,529 @@
+{
+  "name": "orchdev-ai",
+  "displayName": "OrchDev AI",
+  "description": "AI code orchestrator for VS Code and Windsurf，用于协调多个执行器完成复杂开发任务。",
+  "version": "0.0.1",
+  "publisher": "orchdev-ai-local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bebetobebe/orchdev-ai.git"
+  },
+  "homepage": "https://github.com/bebetobebe/orchdev-ai#readme",
+  "bugs": {
+    "url": "https://github.com/bebetobebe/orchdev-ai/issues"
+  },
+  "keywords": [
+    "vscode-extension",
+    "ai",
+    "orchestration",
+    "mcp",
+    "codex",
+    "claude",
+    "gemini",
+    "aider",
+    "orchdev",
+    "windsurf",
+    "ai-agent",
+    "ai-code-orchestrator",
+    "developer-tools",
+    "claude-code"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-dev-orchestrator.start",
+        "title": "打开编排面板",
+        "category": "OrchDev AI",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "ai-dev-orchestrator.openPanel",
+        "title": "打开编排面板",
+        "category": "OrchDev AI",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "ai-dev-orchestrator.newSession",
+        "title": "新建会话",
+        "category": "OrchDev AI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ai-dev-orchestrator.newTask",
+        "title": "新建任务",
+        "category": "OrchDev AI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ai-dev-orchestrator.refreshViews",
+        "title": "刷新视图",
+        "category": "OrchDev AI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ai-dev-orchestrator.selectSession",
+        "title": "选择会话",
+        "category": "OrchDev AI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "ai-dev-orchestrator.deleteSession",
+        "title": "删除会话",
+        "category": "OrchDev AI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ai-dev-orchestrator.cancelTask",
+        "title": "取消任务",
+        "category": "OrchDev AI",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "ai-dev-orchestrator.setRelayToken",
+        "title": "设置中继服务令牌",
+        "category": "OrchDev AI"
+      },
+      {
+        "command": "ai-dev-orchestrator.clearRelayToken",
+        "title": "清除中继服务令牌",
+        "category": "OrchDev AI"
+      },
+      {
+        "command": "ai-dev-orchestrator.setCustomApiKey",
+        "title": "设置固定 API 密钥",
+        "category": "OrchDev AI",
+        "icon": "$(key)"
+      },
+      {
+        "command": "ai-dev-orchestrator.quickSetupCustomApi",
+        "title": "启用固定 API",
+        "category": "OrchDev AI",
+        "icon": "$(wand)"
+      },
+      {
+        "command": "ai-dev-orchestrator.testCustomApi",
+        "title": "测试固定 API 连接",
+        "category": "OrchDev AI",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "ai-dev-orchestrator.createSelfCheckTask",
+        "title": "创建安全自检任务",
+        "category": "OrchDev AI",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "ai-dev-orchestrator.clearCustomApiKey",
+        "title": "清除固定 API 密钥",
+        "category": "OrchDev AI",
+        "icon": "$(trash)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ai-orchestrator-view-container",
+          "title": "OrchDev AI",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ai-orchestrator-view-container": [
+        {
+          "id": "ai-orchestrator-sessions-view",
+          "name": "会话",
+          "icon": "media/icon.svg"
+        },
+        {
+          "id": "ai-orchestrator-tasks-view",
+          "name": "任务",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "ai-dev-orchestrator.newSession",
+          "when": "view == ai-orchestrator-sessions-view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ai-dev-orchestrator.openPanel",
+          "when": "view == ai-orchestrator-sessions-view",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ai-dev-orchestrator.quickSetupCustomApi",
+          "when": "view == ai-orchestrator-sessions-view",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ai-dev-orchestrator.testCustomApi",
+          "when": "view == ai-orchestrator-sessions-view",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ai-dev-orchestrator.createSelfCheckTask",
+          "when": "view == ai-orchestrator-sessions-view",
+          "group": "navigation@5"
+        },
+        {
+          "command": "ai-dev-orchestrator.refreshViews",
+          "when": "view == ai-orchestrator-sessions-view",
+          "group": "navigation@9"
+        },
+        {
+          "command": "ai-dev-orchestrator.newTask",
+          "when": "view == ai-orchestrator-tasks-view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ai-dev-orchestrator.openPanel",
+          "when": "view == ai-orchestrator-tasks-view",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ai-dev-orchestrator.quickSetupCustomApi",
+          "when": "view == ai-orchestrator-tasks-view",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ai-dev-orchestrator.testCustomApi",
+          "when": "view == ai-orchestrator-tasks-view",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ai-dev-orchestrator.createSelfCheckTask",
+          "when": "view == ai-orchestrator-tasks-view",
+          "group": "navigation@5"
+        },
+        {
+          "command": "ai-dev-orchestrator.refreshViews",
+          "when": "view == ai-orchestrator-tasks-view",
+          "group": "navigation@9"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ai-dev-orchestrator.selectSession",
+          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "group": "inline@1"
+        },
+        {
+          "command": "ai-dev-orchestrator.openPanel",
+          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "group": "inline@2"
+        },
+        {
+          "command": "ai-dev-orchestrator.newTask",
+          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "group": "inline@3"
+        },
+        {
+          "command": "ai-dev-orchestrator.deleteSession",
+          "when": "view == ai-orchestrator-sessions-view && viewItem == session",
+          "group": "inline@9"
+        },
+        {
+          "command": "ai-dev-orchestrator.cancelTask",
+          "when": "view == ai-orchestrator-tasks-view && viewItem == cancelableTask",
+          "group": "inline@1"
+        },
+        {
+          "command": "ai-dev-orchestrator.openPanel",
+          "when": "view == ai-orchestrator-tasks-view && (viewItem == task || viewItem == cancelableTask)",
+          "group": "inline@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ai-dev-orchestrator.start",
+          "when": "false"
+        },
+        {
+          "command": "ai-dev-orchestrator.selectSession",
+          "when": "false"
+        },
+        {
+          "command": "ai-dev-orchestrator.deleteSession",
+          "when": "false"
+        },
+        {
+          "command": "ai-dev-orchestrator.cancelTask",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "ai-orchestrator-sessions-view",
+        "contents": "还没有会话。\n[打开编排面板](command:ai-dev-orchestrator.openPanel)\n[启用固定 API](command:ai-dev-orchestrator.quickSetupCustomApi)\n[安全自检](command:ai-dev-orchestrator.createSelfCheckTask)\n[新建会话](command:ai-dev-orchestrator.newSession)"
+      },
+      {
+        "view": "ai-orchestrator-tasks-view",
+        "contents": "先选择或新建一个会话。\n[打开编排面板](command:ai-dev-orchestrator.openPanel)\n[启用固定 API](command:ai-dev-orchestrator.quickSetupCustomApi)\n[测试固定 API](command:ai-dev-orchestrator.testCustomApi)\n[新建会话](command:ai-dev-orchestrator.newSession)",
+        "when": "!aiDevOrchestrator.hasActiveSession"
+      },
+      {
+        "view": "ai-orchestrator-tasks-view",
+        "contents": "当前会话还没有任务。\n[打开编排面板](command:ai-dev-orchestrator.openPanel)\n[新建任务](command:ai-dev-orchestrator.newTask)\n[安全自检](command:ai-dev-orchestrator.createSelfCheckTask)",
+        "when": "aiDevOrchestrator.hasActiveSession"
+      }
+    ],
+    "configuration": {
+      "title": "OrchDev AI",
+      "properties": {
+        "aiDevOrchestrator.mcp.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册内置的 MCP 占位执行器。默认关闭，避免把占位执行器误当成真实可开发的执行器。"
+        },
+        "aiDevOrchestrator.codex.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册 Codex 命令行执行器（需要已安装 openai/codex）。"
+        },
+        "aiDevOrchestrator.codex.cliPath": {
+          "type": "string",
+          "default": "codex",
+          "description": "codex 可执行文件路径。"
+        },
+        "aiDevOrchestrator.codex.model": {
+          "type": "string",
+          "default": "",
+          "description": "可选的模型名，通过 -m 传入（例如 gpt-5.2-codex）。"
+        },
+        "aiDevOrchestrator.codex.sandbox": {
+          "type": "string",
+          "enum": [
+            "read-only",
+            "workspace-write",
+            "danger-full-access"
+          ],
+          "default": "workspace-write",
+          "description": "Codex 沙箱模式，通过 -s 传入。"
+        },
+        "aiDevOrchestrator.opencode.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册 OpenCode 命令行执行器（需要已安装 anomalyco/opencode）。"
+        },
+        "aiDevOrchestrator.opencode.cliPath": {
+          "type": "string",
+          "default": "opencode",
+          "description": "opencode 可执行文件路径。"
+        },
+        "aiDevOrchestrator.opencode.model": {
+          "type": "string",
+          "default": "",
+          "description": "可选的提供商/模型，例如 anthropic/claude-sonnet-4。"
+        },
+        "aiDevOrchestrator.claude.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册 Claude Code 命令行执行器（需要已安装 anthropics/claude-code）。"
+        },
+        "aiDevOrchestrator.claude.cliPath": {
+          "type": "string",
+          "default": "claude",
+          "description": "claude 可执行文件路径。"
+        },
+        "aiDevOrchestrator.claude.model": {
+          "type": "string",
+          "default": "",
+          "description": "可选的模型名，通过 --model 传入（例如 claude-sonnet-4-5）。"
+        },
+        "aiDevOrchestrator.gemini.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册 Gemini 命令行执行器（需要已安装 google-gemini/gemini-cli）。"
+        },
+        "aiDevOrchestrator.gemini.cliPath": {
+          "type": "string",
+          "default": "gemini",
+          "description": "gemini 可执行文件路径。"
+        },
+        "aiDevOrchestrator.gemini.model": {
+          "type": "string",
+          "default": "",
+          "description": "可选的模型名，通过 -m 传入（例如 gemini-2.5-pro）。"
+        },
+        "aiDevOrchestrator.aider.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册 Aider 命令行执行器（需要已安装 Aider-AI/aider）。"
+        },
+        "aiDevOrchestrator.aider.cliPath": {
+          "type": "string",
+          "default": "aider",
+          "description": "aider 可执行文件路径。"
+        },
+        "aiDevOrchestrator.aider.model": {
+          "type": "string",
+          "default": "",
+          "description": "可选的模型，通过 --model 传入（例如 gpt-5）。"
+        },
+        "aiDevOrchestrator.aider.autoConfirm": {
+          "type": "boolean",
+          "default": true,
+          "description": "向 aider 传入 --yes-always，避免交互确认阻塞。"
+        },
+        "aiDevOrchestrator.mcpClient.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册实际的 MCP 客户端执行器，通过 @modelcontextprotocol/sdk 以 stdio 方式连接 MCP 服务。"
+        },
+        "aiDevOrchestrator.mcpClient.command": {
+          "type": "string",
+          "default": "",
+          "description": "启动 MCP 服务器使用的可执行文件（例如 'npx'、'/usr/local/bin/my-mcp-server'）。"
+        },
+        "aiDevOrchestrator.mcpClient.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "传递给 MCP 服务器可执行文件的参数。"
+        },
+        "aiDevOrchestrator.mcpClient.toolName": {
+          "type": "string",
+          "default": "",
+          "description": "每份任务下发时调用的 MCP 工具名（例如 'run_task'）。"
+        },
+        "aiDevOrchestrator.mcpClient.promptArgName": {
+          "type": "string",
+          "default": "prompt",
+          "description": "传递 task.prompt 给 MCP 工具时使用的参数名，默认 'prompt'。"
+        },
+        "aiDevOrchestrator.relay.authToken": {
+          "type": "string",
+          "default": "",
+          "deprecationMessage": "已废弃：请使用“OrchDev AI：设置中继服务令牌”命令。此处保存的令牌会在下次启动时自动迁移到操作系统密钥存储。继续在此填写会通过设置同步在设备间同步，不建议用于密钥。",
+          "markdownDescription": "**已废弃** — 请改用 `OrchDev AI：设置中继服务令牌` 命令。\n\n此处填写的任何值都会在下次启动时迁移到 VS Code 的系统密钥存储，随后该字段会被清空。保留在此的值会通过设置同步，不适合保存密钥。"
+        },
+        "aiDevOrchestrator.relayHttp.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "注册内置的 HTTP 中继服务执行器（无需命令行依赖）。开源自用版默认关闭；只有在 src/config/relayConfig.ts 配好真实中继地址后才建议开启。"
+        },
+        "aiDevOrchestrator.relayHttp.model": {
+          "type": "string",
+          "default": "",
+          "description": "覆盖 HTTP 中继服务执行器默认使用的模型。留空则使用打包时的默认值。"
+        },
+        "aiDevOrchestrator.relayHttp.systemPrompt": {
+          "type": "string",
+          "default": "",
+          "description": "可选系统提示词，会附加到每个 HTTP 中继服务请求上。"
+        },
+        "aiDevOrchestrator.relayHttp.timeoutMs": {
+          "type": "number",
+          "default": 120000,
+          "minimum": 1000,
+          "description": "HTTP 中继服务执行器的单次请求超时（毫秒）。"
+        },
+        "aiDevOrchestrator.relayHttp.enableWorkspaceTools": {
+          "type": "boolean",
+          "default": false,
+          "description": "允许 HTTP 中继服务执行器在 Execute/Plan/Ask 任务中调用内置工作区工具。启用后可读取文件、搜索代码；Execute 任务还可修改文件。"
+        },
+        "aiDevOrchestrator.relayHttp.allowCommandExecution": {
+          "type": "boolean",
+          "default": false,
+          "description": "允许 HTTP 中继服务执行器通过内置工具在工作区运行命令。仅在你信任对应模型与服务时再开启。"
+        },
+        "aiDevOrchestrator.relayHttp.maxToolIterations": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "description": "HTTP 中继服务执行器单个任务最多允许的工具调用轮次。复杂代码修改可适当调高。"
+        },
+        "aiDevOrchestrator.autoChain": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用后，任务完成时会自动将同会话中的下一个待处理任务下发给同一个执行器。"
+        },
+        "aiDevOrchestrator.recovery.autoRetry": {
+          "type": "boolean",
+          "default": true,
+          "description": "识别到速率限制、网络异常、服务过载或服务内部错误时，自动延迟重试当前任务。"
+        },
+        "aiDevOrchestrator.recovery.maxRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "description": "每个任务最多自动重试次数。设为 0 表示只识别和提示，不自动重试。"
+        },
+        "aiDevOrchestrator.recovery.baseDelayMs": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 0,
+          "description": "自动重试的基础等待时间（毫秒）。"
+        },
+        "aiDevOrchestrator.recovery.maxDelayMs": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 0,
+          "description": "自动重试的最长等待时间（毫秒）。"
+        },
+        "aiDevOrchestrator.healthCheck.intervalMs": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 0,
+          "description": "执行器自动重连扫描的间隔（毫秒）。设为 0 则禁用，只能手动重连。"
+        },
+        "aiDevOrchestrator.relayHealth.intervalMs": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 0,
+          "description": "探测中继服务 /health 接口以更新面板状态胶囊的间隔（毫秒）。设为 0 则禁用。如果打包附带的中继服务被关闭、未设置认证令牌、或 RELAY_CONFIG.healthUrl 为空，探测也会自动禁用。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "npm run typecheck && node esbuild.js --production",
+    "smoke": "node scripts/smoke-test-bundle.js",
+    "verify": "npm run package && npm run test:unit && npm run smoke",
+    "vsix": "vsce package --no-dependencies --allow-missing-repository --baseContentUrl https://github.com/bebetobebe/orchdev-ai/blob/main --baseImagesUrl https://github.com/bebetobebe/orchdev-ai/raw/main",
+    "typecheck": "tsc --noEmit -p ./",
+    "pretest": "npm run typecheck && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "ip-address": "10.2.0",
+    "vite": "6.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.28.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.3.3",
+    "vitest": "3.1.4"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@vscode/codicons": "^0.0.45"
+  }
+}

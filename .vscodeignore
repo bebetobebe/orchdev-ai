@@ -1,0 +1,41 @@
+# ============================================================
+# 发布到 .vsix 时排除的文件。
+# 未列在这里的文件会进入最终安装包。
+#
+# 注意：不要排除 out/，package.json:main 指向的
+# ./out/extension.js 就在这里。
+#
+# 当前扩展由 esbuild 打包，运行时依赖已经内联到 out/extension.js，
+# 因此 node_modules/ 不需要随 .vsix 一起发布。
+# ============================================================
+
+# 源码和开发输入，运行时不需要
+src/**
+tests/**
+**/*.ts
+*.tsbuildinfo
+
+# 已被打包进产物，不随安装包发布
+node_modules/**
+esbuild.js
+scripts/**
+
+# sourcemap，去掉可减小体积
+**/*.map
+
+# 开发工具、编辑器和版本控制文件
+.git/**
+.github/**
+.gitignore
+.vscode/**
+.vscode-test/**
+.windsurf/**
+.eslintrc*
+tsconfig.json
+vitest.config*
+
+# 系统文件
+**/.DS_Store
+
+# 旧安装包
+*.vsix
