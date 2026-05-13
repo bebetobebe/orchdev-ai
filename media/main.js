@@ -331,10 +331,20 @@ function renderSessions(sessions) {
 
 window.addEventListener('message', event => {
     const message = event.data; // The JSON data our extension sent
+    if (!message || typeof message !== 'object' || typeof message.type !== 'string') {
+        return;
+    }
 
     switch (message.type) {
         case 'updateSessions':
-            const { sessions, tasks, workers, activeSessionId: serverActiveId, sessionStats: stats, autoChain, relayHealth, customApiHealth: apiHealth } = message;
+            const sessions = Array.isArray(message.sessions) ? message.sessions : [];
+            const tasks = Array.isArray(message.tasks) ? message.tasks : [];
+            const workers = Array.isArray(message.workers) ? message.workers : [];
+            const serverActiveId = message.activeSessionId;
+            const stats = message.sessionStats;
+            const autoChain = message.autoChain;
+            const relayHealth = message.relayHealth;
+            const apiHealth = message.customApiHealth;
             if (serverActiveId !== undefined) {
                 activeSessionId = serverActiveId;
             }
@@ -408,7 +418,11 @@ function renderTasks(tasks) {
     let filtered = activeFilter === 'all' ? tasks : tasks.filter(t => t.status === activeFilter);
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(t => t.prompt.toLowerCase().includes(q) || (t.result && t.result.summary.toLowerCase().includes(q)));
+        filtered = filtered.filter(t => {
+            const promptText = typeof t.prompt === 'string' ? t.prompt : '';
+            const summaryText = t.result && typeof t.result.summary === 'string' ? t.result.summary : '';
+            return promptText.toLowerCase().includes(q) || summaryText.toLowerCase().includes(q);
+        });
     }
     const taskCountLabel = filtered.length !== tasks.length ? `${filtered.length}/${tasks.length}` : `${tasks.length}`;
     container.innerHTML = `
@@ -456,30 +470,31 @@ function renderTasks(tasks) {
         if (task.status === 'running' && typeof task.streamingOutput === 'string' && task.streamingOutput.length > 0) {
             detailHtml += `<div class="task-streaming"><div class="task-streaming-header"><span class="streaming-indicator" aria-hidden="true"></span><strong>正在输出...</strong></div><pre class="task-streaming-body">${escapeHtml(task.streamingOutput)}</pre></div>`;
         }
-        const recovery = task.recovery || (task.result && task.result.recovery);
+        const result = normalizeTaskResult(task.result);
+        const recovery = task.recovery || (result && result.recovery);
         if (recovery) {
             detailHtml += renderTaskRecovery(recovery);
         }
-        if (task.result) {
+        if (result) {
             const suppressIntermediateSummary = task.status === 'queued' && recovery && recovery.autoRetry;
             if (!suppressIntermediateSummary) {
-                detailHtml += `<div class="task-result-summary"><strong>结果：</strong> ${escapeHtml(task.result.summary)}</div>`;
+                detailHtml += `<div class="task-result-summary"><strong>结果：</strong> ${escapeHtml(result.summary)}</div>`;
             }
-            if (task.result.modifiedFiles && task.result.modifiedFiles.length > 0) {
-                detailHtml += `<div class="modified-files"><strong>修改文件</strong>${task.result.modifiedFiles.map(path => `<button class="modified-file-btn" type="button" data-path="${escapeHtml(path)}" title="打开文件">${escapeHtml(path)}</button>`).join('')}</div>`;
+            if (result.modifiedFiles.length > 0) {
+                detailHtml += `<div class="modified-files"><strong>修改文件</strong>${result.modifiedFiles.map(path => `<button class="modified-file-btn" type="button" data-path="${escapeHtml(path)}" title="打开文件">${escapeHtml(path)}</button>`).join('')}</div>`;
             } else if (shouldShowNoModificationNotice(task)) {
                 detailHtml += `<div class="task-no-modifications"><i class="codicon codicon-warning"></i><div><strong>未检测到文件修改</strong><span>这次执行器没有通过工作区工具回传修改文件。若你期望它改代码，请先点击“测试固定 API”，并确认执行器卡片显示“工具调用已通过”和“执行可写”。</span></div></div>`;
             }
-            if (task.result.artifacts && task.result.artifacts.length > 0) {
-                detailHtml += `<details class="task-detail"><summary>产物 (${task.result.artifacts.length})</summary>`;
-                task.result.artifacts.forEach(a => {
+            if (result.artifacts.length > 0) {
+                detailHtml += `<details class="task-detail"><summary>产物 (${result.artifacts.length})</summary>`;
+                result.artifacts.forEach(a => {
                     detailHtml += renderArtifact(a);
                 });
                 detailHtml += `</details>`;
             }
-            if (task.result.logs && task.result.logs.length > 0) {
-                detailHtml += `<details class="task-detail"><summary>日志 (${task.result.logs.length})</summary>`;
-                task.result.logs.forEach(log => {
+            if (result.logs.length > 0) {
+                detailHtml += `<details class="task-detail"><summary>日志 (${result.logs.length})</summary>`;
+                result.logs.forEach(log => {
                     detailHtml += `<div class="log-line">${escapeHtml(log)}</div>`;
                 });
                 detailHtml += `</details>`;
@@ -537,8 +552,9 @@ function renderTasks(tasks) {
 }
 
 function shouldShowNoModificationNotice(task) {
-    if (!task || task.mode !== 'Execute' || task.status !== 'completed' || !task.result) return false;
-    if (Array.isArray(task.result.modifiedFiles) && task.result.modifiedFiles.length > 0) return false;
+    const result = normalizeTaskResult(task && task.result);
+    if (!task || task.mode !== 'Execute' || task.status !== 'completed' || !result) return false;
+    if (result.modifiedFiles.length > 0) return false;
     const worker = task.workerId ? lastWorkers.find(candidate => candidate.id === task.workerId) : null;
     const caps = Array.isArray(worker?.capabilities) ? worker.capabilities : [];
     return caps.some(capability => capability.kind === 'api-tools');
@@ -598,6 +614,28 @@ function escapeHtml(str) {
     if (str == null) return '';
     const s = String(str);
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function normalizeTaskResult(result) {
+    if (!result || typeof result !== 'object') return null;
+    const modifiedFiles = Array.isArray(result.modifiedFiles)
+        ? result.modifiedFiles.filter(path => typeof path === 'string' && path.trim())
+        : [];
+    const artifacts = Array.isArray(result.artifacts)
+        ? result.artifacts.filter(item => item && typeof item === 'object' && (item.type === 'file' || item.type === 'snippet') && typeof item.name === 'string')
+        : [];
+    const logs = Array.isArray(result.logs)
+        ? result.logs.filter(log => typeof log === 'string')
+        : [];
+    return {
+        summary: typeof result.summary === 'string' && result.summary.trim()
+            ? result.summary
+            : '执行器没有返回有效摘要。',
+        modifiedFiles,
+        artifacts,
+        logs,
+        recovery: result.recovery && typeof result.recovery === 'object' ? result.recovery : null,
+    };
 }
 
 // --- Relay health pill ---
@@ -735,7 +773,8 @@ function extractSnippetLang(name) {
 
 // Task search input + auto-chain toggle
 document.addEventListener('input', event => {
-    const target = event.target;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
     if (target.matches('#task-search-input')) {
         searchQuery = target.value.trim();
         renderTasks(lastTasks);
@@ -748,7 +787,8 @@ document.addEventListener('input', event => {
 });
 
 document.addEventListener('change', event => {
-    const target = event.target;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
     if (target.matches('#auto-chain-checkbox')) {
         postMessage('toggle-auto-chain', { enabled: target.checked });
         return;
@@ -773,6 +813,7 @@ document.addEventListener('click', event => {
     if (target.matches('#create-session-btn')) {
         const nameInput = document.getElementById('session-name-input');
         const goalInput = document.getElementById('session-goal-input');
+        if (!nameInput || !goalInput) return;
         const name = nameInput.value.trim();
         const goal = goalInput.value.trim();
         if (name && goal) {
@@ -848,13 +889,16 @@ document.addEventListener('click', event => {
         if (!promptEl) return;
         const currentText = promptEl.textContent || '';
         const promptWrap = promptEl.closest('.task-title-row') || promptEl.parentElement;
+        if (!promptWrap) return;
         promptWrap.innerHTML = `
             <input type="text" class="edit-prompt-input" data-task-id="${taskId}" value="${escapeHtml(currentText)}" />
             <button class="save-prompt-btn" data-task-id="${taskId}">保存</button>
         `;
         const input = promptWrap.querySelector('.edit-prompt-input');
-        input.focus();
-        input.select();
+        if (input) {
+            input.focus();
+            input.select();
+        }
     } else if (target.matches('.save-prompt-btn')) {
         const taskId = target.dataset.taskId;
         const input = document.querySelector(`.edit-prompt-input[data-task-id="${taskId}"]`);
@@ -925,6 +969,7 @@ document.addEventListener('click', event => {
     } else if (target.matches('.dispatch-btn')) {
         const taskId = target.dataset.taskId;
         const taskElement = target.closest('.task');
+        if (!taskElement) return;
         const workerSelector = taskElement.querySelector('.worker-selector:checked');
         if (workerSelector) {
             const workerId = workerSelector.value;
@@ -935,6 +980,7 @@ document.addEventListener('click', event => {
     } else if (target.matches('.mode-btn')) {
         const mode = target.dataset.mode;
         const promptInput = document.getElementById('task-prompt-input');
+        if (!promptInput) return;
         const prompt = promptInput.value.trim();
         if (!prompt) {
             flashInvalidInput(promptInput);
@@ -946,6 +992,7 @@ document.addEventListener('click', event => {
         const prompt = target.dataset.prompt;
         const mode = target.dataset.mode;
         const promptInput = document.getElementById('task-prompt-input');
+        if (!promptInput) return;
         promptInput.value = prompt;
         clearInvalidInput(promptInput);
         clearClientFeedback();
@@ -959,11 +1006,13 @@ document.addEventListener('click', event => {
 
 // Keyboard support: Enter saves, Esc cancels, Ctrl+Enter creates task
 document.addEventListener('keydown', event => {
-    const target = event.target;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
 
     // Ctrl+Enter in prompt input → create task in Execute mode
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && target.matches('#task-prompt-input')) {
         event.preventDefault();
+        if (typeof target.value !== 'string') return;
         const prompt = target.value.trim();
         if (!prompt) {
             flashInvalidInput(target);
@@ -1141,3 +1190,7 @@ function postMessage(command, data) {
         data: data
     });
 }
+
+setTimeout(() => {
+    postMessage('webview-ready', {});
+}, 0);

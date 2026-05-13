@@ -58,5 +58,5 @@ export const FIXED_API_CONFIG: FixedApiConfig = {
 	enableWorkspaceTools: true,
 	allowCommandExecution: false,
 	maxToolIterations: 20,
-	apiKeyOptional: true,
+	apiKeyOptional: false,
 };

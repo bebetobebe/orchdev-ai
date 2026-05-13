@@ -2,7 +2,7 @@
   "name": "orchdev-ai",
   "displayName": "OrchDev AI",
   "description": "AI code orchestrator for VS Code and Windsurf，用于协调多个执行器完成复杂开发任务。",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "orchdev-ai-local",
   "license": "MIT",
   "repository": {
@@ -32,6 +32,25 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "activationEvents": [
+    "onCommand:orchdev-ai.start",
+    "onCommand:orchdev-ai.openPanel",
+    "onCommand:orchdev-ai.newSession",
+    "onCommand:orchdev-ai.newTask",
+    "onCommand:orchdev-ai.refreshViews",
+    "onCommand:orchdev-ai.selectSession",
+    "onCommand:orchdev-ai.deleteSession",
+    "onCommand:orchdev-ai.cancelTask",
+    "onCommand:orchdev-ai.setRelayToken",
+    "onCommand:orchdev-ai.clearRelayToken",
+    "onCommand:orchdev-ai.setCustomApiKey",
+    "onCommand:orchdev-ai.quickSetupCustomApi",
+    "onCommand:orchdev-ai.testCustomApi",
+    "onCommand:orchdev-ai.createSelfCheckTask",
+    "onCommand:orchdev-ai.clearCustomApiKey",
+    "onView:orchdev-ai-sessions-view",
+    "onView:orchdev-ai-tasks-view"
+  ],
   "categories": [
     "Other"
   ],

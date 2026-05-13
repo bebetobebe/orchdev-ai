@@ -668,6 +668,10 @@ describe('extension SecretStorage relay token', () => {
         mocks.showInputBox.mockResolvedValueOnce('sk-custom');
         await getCommand('orchdev-ai.setCustomApiKey')();
 
+        expect(mocks.showInputBox).toHaveBeenCalledWith(expect.objectContaining({
+            prompt: expect.stringContaining('https://mintapi.cn'),
+            placeHolder: '请到 mintapi.cn 获取后粘贴',
+        }));
         expect(secrets.store).toHaveBeenCalledWith('aiDevOrchestrator.customApi.apiKey', 'sk-custom');
         expect(secrets._store.get('aiDevOrchestrator.customApi.apiKey')).toBe('sk-custom');
         expect(mocks.showInformationMessage).toHaveBeenCalledWith('固定 API 密钥已保存到系统密钥存储。');
@@ -832,6 +836,42 @@ describe('extension SecretStorage relay token', () => {
             type: 'function',
             name: 'workspace_capability_check',
         });
+        expect(mocks.mainPanel.updateCustomApiHealth).toHaveBeenLastCalledWith(expect.objectContaining({
+            status: 'ok',
+            name: 'MintAPI',
+            model: 'gpt-5.5',
+        }));
+    });
+
+    it('testCustomApi falls back when Responses API rejects forced tool choice', async () => {
+        const secrets = makeFakeSecrets();
+        useFixedApiConfig({
+            name: 'MintAPI',
+            baseUrl: 'https://mintapi.cn/v1',
+            wireApi: 'responses',
+            model: 'gpt-5.5',
+            apiKeyOptional: true,
+        });
+        const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+            const body = JSON.parse(init.body as string);
+            if (!Array.isArray(body.tools)) {
+                return new Response(JSON.stringify({ output_text: 'ok' }), { status: 200 });
+            }
+            if (body.tool_choice) {
+                return new Response('unknown parameter: tool_choice', { status: 400, statusText: 'Bad Request' });
+            }
+            return new Response(JSON.stringify({
+                output: [{ type: 'function_call', name: 'workspace_capability_check', call_id: 'call-1', arguments: '{"ok":true}' }],
+            }), { status: 200 });
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        await activate(createContext(secrets));
+
+        await getCommand('orchdev-ai.testCustomApi')();
+
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+        expect(JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string).tool_choice).toBeTruthy();
+        expect(JSON.parse((fetchMock.mock.calls[2][1] as RequestInit).body as string).tool_choice).toBeUndefined();
         expect(mocks.mainPanel.updateCustomApiHealth).toHaveBeenLastCalledWith(expect.objectContaining({
             status: 'ok',
             name: 'MintAPI',

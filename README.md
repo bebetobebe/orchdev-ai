@@ -4,7 +4,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.85%2B-blue)
-![Tests](https://img.shields.io/badge/tests-469%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-476%20passed-brightgreen)
 ![Package](https://img.shields.io/badge/package-VSIX-informational)
 
 OrchDev AI 是一个面向 VS Code 和 Windsurf 的本地开发编排扩展。它把复杂开发工作拆成会话、任务和执行器队列，再交给固定 API、Codex、Claude Code、Gemini、Aider、OpenCode 或 MCP 客户端协同处理。
@@ -16,8 +16,8 @@ OrchDev AI 是一个面向 VS Code 和 Windsurf 的本地开发编排扩展。�
 安装包可以从 GitHub Release 下载，也可以从源码本地打包。
 
 - 最新版本：[GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)
-- 直接下载 VSIX：[orchdev-ai-0.0.2.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.2.vsix)
-- 本地构建：运行 `npm run vsix` 后安装生成的 `orchdev-ai-0.0.2.vsix`
+- 直接下载 VSIX：[orchdev-ai-0.0.3.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.3.vsix)
+- 本地构建：运行 `npm run vsix` 后安装生成的 `orchdev-ai-0.0.3.vsix`
 
 ## 交流群
 
@@ -28,12 +28,13 @@ OrchDev AI 是一个面向 VS Code 和 Windsurf 的本地开发编排扩展。�
 1. 安装 VSIX。
 2. 在 VS Code 或 Windsurf 中打开一个项目文件夹。
 3. 打开命令面板，运行 `OrchDev AI：打开编排面板`。
-4. 点击 `启用固定 API`。当前默认固定到 MintAPI，模型为 `gpt-5.5`，请求协议为 Responses API。
-5. 点击 `测试固定 API`，确认卡片显示 `工具调用已通过` 和 `执行可写`。
-6. 点击 `安全自检`，验证读取项目和写入 `.ai-orchestrator/self-check.md` 的链路。
-7. 在顶部输入任务，例如“分析这个项目并修复按钮点击无响应的问题”，点击 `执行`。
+4. 点击 `设置固定 API 密钥`，前往 `https://mintapi.cn` 获取密钥并保存。
+5. 点击 `启用固定 API`。当前默认固定到 MintAPI，模型为 `gpt-5.5`，请求协议为 Responses API。
+6. 点击 `测试固定 API`，确认卡片显示 `工具调用已通过` 和 `执行可写`。
+7. 点击 `安全自检`，验证读取项目和写入 `.ai-orchestrator/self-check.md` 的链路。
+8. 在顶部输入任务，例如“分析这个项目并修复按钮点击无响应的问题”，点击 `执行`。
 
-如果你的 MintAPI 网关需要密钥，运行 `OrchDev AI：设置固定 API 密钥`。密钥只保存到 VS Code 系统密钥存储，不写入源码和 `settings.json`。
+密钥只保存到 VS Code 系统密钥存储，不写入源码和 `settings.json`。如果还没有密钥，请先到 `https://mintapi.cn` 获取。
 
 ## 适合什么场景
 
@@ -89,7 +90,7 @@ export const FIXED_API_CONFIG = {
   enableWorkspaceTools: true,
   allowCommandExecution: false,
   maxToolIterations: 20,
-  apiKeyOptional: true,
+  apiKeyOptional: false,
 };
 ```
 
@@ -102,7 +103,7 @@ export const FIXED_API_CONFIG = {
 - `disableResponseStorage`：Responses API 下发送 `store: false`。
 - `enableWorkspaceTools`：允许读取、搜索和写入工作区文件。
 - `allowCommandExecution`：是否允许模型运行本地命令，默认关闭。
-- `apiKeyOptional`：服务无需密钥时保持 `true`；如果需要密钥，改为 `false` 并通过命令保存密钥。
+- `apiKeyOptional`：当前打包版建议保持 `false`，并通过命令保存 MintAPI 密钥。
 
 ## 工作区工具边界
 
@@ -149,7 +150,7 @@ flowchart LR
 ### 从 Release 安装
 
 1. 打开 [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)。
-2. 下载 `orchdev-ai-0.0.2.vsix`。
+2. 下载 `orchdev-ai-0.0.3.vsix`。
 3. 在 VS Code 或 Windsurf 的扩展面板选择 `Install from VSIX...`。
 4. 安装后运行 `OrchDev AI：打开编排面板`。
 
@@ -159,7 +160,7 @@ flowchart LR
 npm install
 npm run verify
 npm run vsix
-code --install-extension orchdev-ai-0.0.2.vsix
+code --install-extension orchdev-ai-0.0.3.vsix
 ```
 
 Windsurf 同样支持从 VSIX 安装。如果终端没有 `code` 命令，可以在 VS Code 命令面板运行 `Shell Command: Install 'code' command in PATH`。
@@ -168,7 +169,7 @@ Windsurf 同样支持从 VSIX 安装。如果终端没有 `code` 命令，可以
 
 - 如果你之前装过旧版 `AI 开发编排`，请先卸载旧版，再安装当前 `OrchDev AI`。
 - `AI 开发编排` 与 `OrchDev AI` 同时存在时，旧命令和旧侧边栏入口可能会与新版本冲突，表现为按钮点击没反应、会话创建失败或界面状态不一致。
-- 升级后如果仍然异常，优先确认安装文件名是否为 `orchdev-ai-0.0.2.vsix`，不要继续使用旧的 `0.0.1` 包。
+- 升级后如果仍然异常，优先确认安装文件名是否为 `orchdev-ai-0.0.3.vsix`，不要继续使用旧的 `0.0.1` 或 `0.0.2` 包。
 
 ## 常用命令
 
@@ -230,7 +231,7 @@ npm run vsix
 当前验证状态：
 
 - 15 个测试文件
-- 469 个单元测试
+- 476 个单元测试
 - 生产构建通过
 - bundle smoke 通过
 

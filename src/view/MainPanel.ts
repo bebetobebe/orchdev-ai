@@ -39,8 +39,14 @@ export class MainPanel {
     private _disposables: vscode.Disposable[] = [];
     private _activeSessionId: string | null = null;
     private _unsubscribeStateChange?: () => void;
+    private _isDisposed = false;
+    private _webviewReady = false;
+    private _pendingWebviewMessages: unknown[] = [];
 
     public setActiveSession(sessionId: string | null): void {
+        if (this._isDisposed) {
+            return;
+        }
         this._activeSessionId = sessionId;
         this.update();
     }
@@ -88,18 +94,24 @@ export class MainPanel {
         this._extensionUri = extensionUri;
 
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._panel.webview.html = this._getHtmlForWebview();
-        // Listen for state changes
-        this._unsubscribeStateChange = Orchestrator.getInstance().onStateChange.subscribe(() => this.update());
-
-        // Initial update
-        this.update();
-
         this._panel.webview.onDidReceiveMessage(
             message => {
+                if (!isRecord(message) || typeof message.command !== 'string') {
+                    return;
+                }
+                const data: Record<string, any> = isRecord(message.data) ? message.data : {};
                 switch (message.command) {
+                    case 'webview-ready':
+                        this._webviewReady = true;
+                        if (this._pendingWebviewMessages.length > 0) {
+                            for (const pending of this._pendingWebviewMessages.splice(0)) {
+                                void this._panel.webview.postMessage(pending);
+                            }
+                        }
+                        this.update();
+                        return;
                     case 'dispatch-task': {
-                        const { taskId, workerId } = message.data;
+                        const { taskId, workerId } = data;
                         void this._runWithActionState(
                             this._taskActionKey(taskId, 'dispatch'),
                             async () => {
@@ -117,7 +129,7 @@ export class MainPanel {
                         return;
                     }
                     case 'create-session': {
-                        const { name, goal } = message.data;
+                        const { name, goal } = data;
                         const createdSessionOutcome = Orchestrator.getInstance().createSessionWithResult(name, goal);
                         if (createdSessionOutcome.session) {
                             this._activeSessionId = createdSessionOutcome.session.id;
@@ -130,7 +142,7 @@ export class MainPanel {
                         return;
                     }
                     case 'summarize-session': {
-                        const { sessionId } = message.data;
+                        const { sessionId } = data;
                         if (!Orchestrator.getInstance().getSession(sessionId)) {
                             vscode.window.showWarningMessage('未找到要更新摘要的会话。');
                             return;
@@ -161,27 +173,28 @@ export class MainPanel {
                         return;
                     }
                     case 'set-active-session':
-                        if (!Orchestrator.getInstance().getSession(message.data.sessionId)) {
-                            this._clearMissingActiveSession(message.data.sessionId);
+                        if (!Orchestrator.getInstance().getSession(data.sessionId)) {
+                            this._clearMissingActiveSession(data.sessionId);
                             vscode.window.showWarningMessage('未找到要选择的会话。');
                             return;
                         }
-                        this._activeSessionId = message.data.sessionId;
+                        this._activeSessionId = data.sessionId;
                         this.update();
-                        vscode.commands.executeCommand(COMMAND_IDS.selectSession, message.data.sessionId);
+                        vscode.commands.executeCommand(COMMAND_IDS.selectSession, data.sessionId);
                         return;
                     case 'create-task': {
-                        void this._handleCreateTaskMessage(message.data);
+                        void this._handleCreateTaskMessage(data);
                         return;
                     }
                     case 'toggle-auto-chain':
                         void this._runWithActionState(
                             this._appActionKey('auto-chain-toggle'),
                             async () => {
+                                const enabled = data.enabled === true;
                                 const previous = Orchestrator.getInstance().autoChain;
-                                Orchestrator.getInstance().autoChain = message.data.enabled;
+                                Orchestrator.getInstance().autoChain = enabled;
                                 try {
-                                    await this._persistAutoChainSetting(message.data.enabled);
+                                    await this._persistAutoChainSetting(enabled);
                                 } catch {
                                     Orchestrator.getInstance().autoChain = previous;
                                     vscode.window.showErrorMessage('保存自动接续设置失败。');
@@ -191,57 +204,57 @@ export class MainPanel {
                         return;
                     case 'clone-task':
                         void this._runWithActionState(
-                            this._taskActionKey(message.data.taskId, 'clone'),
-                            () => this._handleCloneTaskResult(Orchestrator.getInstance().cloneTask(message.data.taskId))
+                            this._taskActionKey(data.taskId, 'clone'),
+                            () => this._handleCloneTaskResult(Orchestrator.getInstance().cloneTask(data.taskId))
                         );
                         return;
                     case 'retry-all-failed':
                         void this._runWithActionState(
-                            this._sessionActionKey(message.data.sessionId, 'retry-all'),
+                            this._sessionActionKey(data.sessionId, 'retry-all'),
                             () => this._handleRetryAllFailedResult(
-                                message.data.sessionId,
-                                Orchestrator.getInstance().retryAllFailedWithResult(message.data.sessionId)
+                                data.sessionId,
+                                Orchestrator.getInstance().retryAllFailedWithResult(data.sessionId)
                             )
                         );
                         return;
                     case 'cancel-all-tasks':
                         void this._runWithActionState(
-                            this._sessionActionKey(message.data.sessionId, 'cancel-all'),
+                            this._sessionActionKey(data.sessionId, 'cancel-all'),
                             () => this._handleCancelAllTasksResult(
-                                message.data.sessionId,
-                                Orchestrator.getInstance().cancelAllTasksWithResult(message.data.sessionId)
+                                data.sessionId,
+                                Orchestrator.getInstance().cancelAllTasksWithResult(data.sessionId)
                             )
                         );
                         return;
                     case 'edit-session':
                         void this._runWithActionState(
-                            this._sessionActionKey(message.data.sessionId, 'edit'),
+                            this._sessionActionKey(data.sessionId, 'edit'),
                             () => this._handleUpdateSessionResult(
                                 Orchestrator.getInstance().updateSession(
-                                    message.data.sessionId,
-                                    message.data.name,
-                                    message.data.goal
+                                    data.sessionId,
+                                    data.name,
+                                    data.goal
                                 )
                             )
                         );
                         return;
                     case 'delete-session':
                         void this._runWithActionState(
-                            this._sessionActionKey(message.data.sessionId, 'delete'),
+                            this._sessionActionKey(data.sessionId, 'delete'),
                             () => {
-                                const result = Orchestrator.getInstance().deleteSession(message.data.sessionId);
-                                this._handleDeleteSessionResult(message.data.sessionId, result);
+                                const result = Orchestrator.getInstance().deleteSession(data.sessionId);
+                                this._handleDeleteSessionResult(data.sessionId, result);
                             }
                         );
                         return;
                     case 'cancel-task':
                         void this._runWithActionState(
-                            this._taskActionKey(message.data.taskId, 'cancel'),
-                            () => this._handleCancelTaskResult(Orchestrator.getInstance().cancelTask(message.data.taskId))
+                            this._taskActionKey(data.taskId, 'cancel'),
+                            () => this._handleCancelTaskResult(Orchestrator.getInstance().cancelTask(data.taskId))
                         );
                         return;
                     case 'auto-dispatch-task': {
-                        const autoTaskId = message.data.taskId;
+                        const autoTaskId = data.taskId;
                         const chosen = Orchestrator.getInstance().pickAutoDispatchWorker();
                         if (chosen) {
                             void this._runWithActionState(
@@ -265,41 +278,41 @@ export class MainPanel {
                     }
                     case 'retry-task':
                         void this._runWithActionState(
-                            this._taskActionKey(message.data.taskId, 'retry'),
-                            () => this._handleRetryTaskResult(Orchestrator.getInstance().retryTask(message.data.taskId))
+                            this._taskActionKey(data.taskId, 'retry'),
+                            () => this._handleRetryTaskResult(Orchestrator.getInstance().retryTask(data.taskId))
                         );
                         return;
                     case 'export-session': {
                         void this._runWithActionState(
-                            this._sessionActionKey(message.data.sessionId, 'export'),
-                            () => this._exportSessionToClipboard(message.data.sessionId)
+                            this._sessionActionKey(data.sessionId, 'export'),
+                            () => this._exportSessionToClipboard(data.sessionId)
                         );
                         return;
                     }
                     case 'edit-task-prompt':
                         void this._runWithActionState(
-                            this._taskActionKey(message.data.taskId, 'edit-prompt'),
+                            this._taskActionKey(data.taskId, 'edit-prompt'),
                             () => this._handleUpdateTaskPromptResult(
-                                Orchestrator.getInstance().updateTaskPrompt(message.data.taskId, message.data.prompt)
+                                Orchestrator.getInstance().updateTaskPrompt(data.taskId, data.prompt)
                             )
                         );
                         return;
                     case 'delete-task':
                         void this._runWithActionState(
-                            this._taskActionKey(message.data.taskId, 'delete'),
-                            () => this._handleDeleteTaskResult(Orchestrator.getInstance().deleteTask(message.data.taskId))
+                            this._taskActionKey(data.taskId, 'delete'),
+                            () => this._handleDeleteTaskResult(Orchestrator.getInstance().deleteTask(data.taskId))
                         );
                         return;
                     case 'connect-worker':
                         void this._runWithActionState(
-                            this._workerActionKey(message.data.workerId, 'connect'),
-                            () => this._connectWorker(message.data.workerId)
+                            this._workerActionKey(data.workerId, 'connect'),
+                            () => this._connectWorker(data.workerId)
                         );
                         return;
                     case 'disconnect-worker':
                         void this._runWithActionState(
-                            this._workerActionKey(message.data.workerId, 'disconnect'),
-                            () => this._disconnectWorker(message.data.workerId)
+                            this._workerActionKey(data.workerId, 'disconnect'),
+                            () => this._disconnectWorker(data.workerId)
                         );
                         return;
                     case 'open-settings':
@@ -323,16 +336,28 @@ export class MainPanel {
                         void vscode.commands.executeCommand(COMMAND_IDS.setCustomApiKey);
                         return;
                     case 'open-workspace-file':
-                        void this._openWorkspaceFile(message.data?.path);
+                        void this._openWorkspaceFile(data.path);
                         return;
                 }
             },
             null,
             this._disposables
         );
+        this._panel.webview.html = this._getHtmlForWebview();
+        // Listen for state changes
+        this._unsubscribeStateChange = Orchestrator.getInstance().onStateChange.subscribe(() => this.update());
+
+        // Initial update
+        this.update();
     }
 
     public update() {
+        if (this._isDisposed) {
+            return;
+        }
+        if (!this._webviewReady) {
+            return;
+        }
         const orchestrator = Orchestrator.getInstance();
         if (this._activeSessionId && !orchestrator.getSession(this._activeSessionId)) {
             this._activeSessionId = null;
@@ -370,6 +395,13 @@ export class MainPanel {
     }
 
     private async _postWebviewMessage(message: unknown): Promise<void> {
+        if (this._isDisposed) {
+            return;
+        }
+        if (!this._webviewReady) {
+            this._pendingWebviewMessages.push(message);
+            return;
+        }
         try {
             await this._panel.webview.postMessage(message);
         } catch {
@@ -381,6 +413,11 @@ export class MainPanel {
         await this._postWebviewMessage({ type: 'setActionState', actionKey, pending: true });
         try {
             await operation();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`面板操作失败（${actionKey}）：`, error);
+            this._postFeedback(`操作失败：${message || '未知错误'}`, 'error');
+            vscode.window.showErrorMessage(`操作失败：${message || '未知错误'}`);
         } finally {
             await this._postWebviewMessage({ type: 'setActionState', actionKey, pending: false });
         }
@@ -431,6 +468,12 @@ export class MainPanel {
         const autoCreateSession = data.autoCreateSession === true;
         const autoDispatch = data.autoDispatch === true;
         const orchestrator = Orchestrator.getInstance();
+
+        if (!prompt.trim()) {
+            this._postFeedback('任务提示词不能为空。');
+            vscode.window.showWarningMessage('任务提示词不能为空。');
+            return;
+        }
 
         if (this._activeSessionId && !orchestrator.getSession(this._activeSessionId)) {
             this._activeSessionId = null;
@@ -821,15 +864,22 @@ export class MainPanel {
     }
 
     public dispose() {
+        if (this._isDisposed) {
+            return;
+        }
+        this._isDisposed = true;
+        this._webviewReady = false;
+        this._pendingWebviewMessages = [];
         MainPanel.currentPanel = undefined;
         this._unsubscribeStateChange?.();
-        this._panel.dispose();
+        this._unsubscribeStateChange = undefined;
         while (this._disposables.length) {
             const x = this._disposables.pop();
             if (x) {
                 x.dispose();
             }
         }
+        this._panel.dispose();
     }
 
     private async _persistAutoChainSetting(enabled: boolean): Promise<void> {
@@ -953,4 +1003,8 @@ function getNonce() {
         text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
     return text;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

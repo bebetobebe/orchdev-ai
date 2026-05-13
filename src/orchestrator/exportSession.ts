@@ -32,6 +32,30 @@ function statusLabel(status: Task['status']): string {
     }
 }
 
+function resultSummary(result: Task['result']): string {
+    return typeof result?.summary === 'string' && result.summary.trim()
+        ? result.summary
+        : '执行器没有返回有效摘要。';
+}
+
+function resultModifiedFiles(result: Task['result']): string[] {
+    return Array.isArray(result?.modifiedFiles)
+        ? result.modifiedFiles.filter((path): path is string => typeof path === 'string' && path.trim().length > 0)
+        : [];
+}
+
+function resultArtifacts(result: Task['result']) {
+    return Array.isArray(result?.artifacts)
+        ? result.artifacts.filter(a => a && (a.type === 'file' || a.type === 'snippet') && typeof a.name === 'string')
+        : [];
+}
+
+function resultLogs(result: Task['result']): string[] {
+    return Array.isArray(result?.logs)
+        ? result.logs.filter((log): log is string => typeof log === 'string')
+        : [];
+}
+
 /**
  * Export a session and its tasks as a self-contained Markdown document.
  * This is a pure function — it takes data and returns a string.
@@ -72,37 +96,41 @@ export function exportSessionMarkdown(session: Session, tasks: Task[]): string {
             }
 
             if (task.result) {
-                lines.push('');
-                lines.push(`**结果：** ${task.result.summary}`);
+                const modifiedFiles = resultModifiedFiles(task.result);
+                const artifacts = resultArtifacts(task.result);
+                const logs = resultLogs(task.result);
 
-                if (task.result.modifiedFiles && task.result.modifiedFiles.length > 0) {
+                lines.push('');
+                lines.push(`**结果：** ${resultSummary(task.result)}`);
+
+                if (modifiedFiles.length > 0) {
                     lines.push('');
                     lines.push('**修改文件：**');
-                    for (const path of task.result.modifiedFiles) {
+                    for (const path of modifiedFiles) {
                         lines.push(`- ${path}`);
                     }
                 }
 
-                if (task.result.artifacts.length > 0) {
+                if (artifacts.length > 0) {
                     lines.push('');
                     lines.push('#### 产物');
-                    for (const a of task.result.artifacts) {
+                    for (const a of artifacts) {
                         lines.push('');
                         const label = a.type === 'file' ? `文件：${a.name}` : `代码片段：${a.name}`;
                         lines.push(`**${label}**`);
                         lines.push('');
                         lines.push('```');
-                        lines.push(a.content);
+                        lines.push(typeof a.content === 'string' ? a.content : '');
                         lines.push('```');
                     }
                 }
 
-                if (task.result.logs.length > 0) {
+                if (logs.length > 0) {
                     lines.push('');
                     lines.push('<details><summary>日志</summary>');
                     lines.push('');
                     lines.push('```');
-                    lines.push(task.result.logs.join('\n'));
+                    lines.push(logs.join('\n'));
                     lines.push('```');
                     lines.push('');
                     lines.push('</details>');

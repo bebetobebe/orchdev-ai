@@ -120,6 +120,7 @@ function openPanel() {
     if (!mocks.state.messageHandler) {
         throw new Error('MainPanel did not register a webview message handler.');
     }
+    mocks.state.messageHandler({ command: 'webview-ready', data: {} });
 }
 
 function post(command: string, data: Record<string, unknown>) {
@@ -200,6 +201,23 @@ describe('MainPanel', () => {
                 name: 'DeepSeek',
                 model: 'deepseek-chat',
             }),
+        }));
+    });
+
+    it('waits for webview-ready before sending the first state payload', async () => {
+        MainPanel.currentPanel = undefined;
+        MainPanel.createOrShow({ path: '/extension', fsPath: '/extension' } as never);
+        const postMessage = mocks.state.panel!.webview.postMessage;
+
+        expect(postMessage).not.toHaveBeenCalled();
+        if (!mocks.state.messageHandler) {
+            throw new Error('MainPanel did not register a webview message handler.');
+        }
+        mocks.state.messageHandler({ command: 'webview-ready', data: {} });
+        await settleAction();
+
+        expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'updateSessions',
         }));
     });
 
@@ -700,6 +718,25 @@ describe('MainPanel', () => {
         expect(postMessage).toHaveBeenCalledWith({ type: 'setActionState', actionKey: `task:${task.id}:dispatch`, pending: true });
         expect(postMessage).toHaveBeenCalledWith({ type: 'setActionState', actionKey: `task:${task.id}:dispatch`, pending: false });
         expect(o.getTask(task.id)?.status).toBe('running');
+    });
+
+    it('shows a clear error when a panel action throws unexpectedly', async () => {
+        const o = Orchestrator.getInstance();
+        const adapter = new FakeAdapter('w1');
+        o.registerWorkerAdapter(adapter);
+        await adapter.connect();
+        const session = o.createSession('s', 'g')!;
+        const task = o.createTask(session.id, 'ship it', 'Execute')!;
+        vi.spyOn(o, 'dispatchTask').mockRejectedValueOnce(new Error('provider boom'));
+
+        openPanel();
+        const postMessage = mocks.state.panel!.webview.postMessage;
+        post('dispatch-task', { taskId: task.id, workerId: adapter.worker.id });
+        await settleAction();
+
+        expect(mocks.showErrorMessage).toHaveBeenCalledWith('操作失败：provider boom');
+        expect(postMessage).toHaveBeenCalledWith({ type: 'clientFeedback', message: '操作失败：provider boom', tone: 'error' });
+        expect(postMessage).toHaveBeenCalledWith({ type: 'setActionState', actionKey: `task:${task.id}:dispatch`, pending: false });
     });
 
     it('posts action-state lifecycle around auto-dispatch-task', async () => {

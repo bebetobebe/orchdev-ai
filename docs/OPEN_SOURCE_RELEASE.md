@@ -15,12 +15,12 @@ README 中保留两类链接：
 
 ```text
 https://github.com/bebetobebe/orchdev-ai/releases/latest
-https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.2.vsix
+https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.3.vsix
 ```
 
 发版时需要确认：
 
-- `0.0.2`：每次发版时与 `package.json` 的 `version` 保持一致。
+- `0.0.3`：每次发版时与 `package.json` 的 `version` 保持一致。
 - Release 附件名：建议固定为 `orchdev-ai-版本号.vsix`，不要混用中文文件名和临时文件名。
 - `package.json` 里的 `npm run vsix` 打包脚本，`--baseContentUrl` 和 `--baseImagesUrl` 要指向真实仓库。
 
@@ -49,7 +49,7 @@ npm run vsix
 4. 本地安装验证：
 
 ```bash
-code --install-extension orchdev-ai-0.0.2.vsix
+code --install-extension orchdev-ai-0.0.3.vsix
 ```
 
 5. 在 VS Code 或 Windsurf 中打开命令面板，运行：
@@ -63,9 +63,9 @@ OrchDev AI：创建安全自检任务
 
 6. 创建 GitHub Release：
 
-- Tag：`v0.0.2`
-- Title：`v0.0.2`
-- 附件：`orchdev-ai-0.0.2.vsix`
+- Tag：`v0.0.3`
+- Title：`v0.0.3`
+- 附件：`orchdev-ai-0.0.3.vsix`
 - Release Notes：使用 `CHANGELOG.md` 中对应版本内容。
 
 7. 发布后回看 README 链接，确认 Release 页面和直接下载地址都能打开。

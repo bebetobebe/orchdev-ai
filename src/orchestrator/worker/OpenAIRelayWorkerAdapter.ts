@@ -787,10 +787,10 @@ export class OpenAIRelayWorkerAdapter implements IWorkerAdapter {
                     continue;
                 }
                 buffer += decoder.decode(value, { stream: true });
-                let boundary = buffer.indexOf('\n\n');
-                while (boundary !== -1) {
-                    const rawEvent = buffer.slice(0, boundary);
-                    buffer = buffer.slice(boundary + 2);
+                let boundary = this._findSseEventBoundary(buffer);
+                while (boundary) {
+                    const rawEvent = buffer.slice(0, boundary.index);
+                    buffer = buffer.slice(boundary.index + boundary.length);
                     const delta = this._parseSseEvent(rawEvent);
                     if (delta === '__DONE__') {
                         return assembled;
@@ -801,7 +801,7 @@ export class OpenAIRelayWorkerAdapter implements IWorkerAdapter {
                             try { onProgress({ text: delta }); } catch { /* noop */ }
                         }
                     }
-                    boundary = buffer.indexOf('\n\n');
+                    boundary = this._findSseEventBoundary(buffer);
                 }
             }
             const tail = buffer.trim();
@@ -820,9 +820,21 @@ export class OpenAIRelayWorkerAdapter implements IWorkerAdapter {
         }
     }
 
+    private _findSseEventBoundary(buffer: string): { index: number; length: number } | undefined {
+        const lf = buffer.indexOf('\n\n');
+        const crlf = buffer.indexOf('\r\n\r\n');
+        if (lf === -1 && crlf === -1) {
+            return undefined;
+        }
+        if (lf !== -1 && (crlf === -1 || lf < crlf)) {
+            return { index: lf, length: 2 };
+        }
+        return { index: crlf, length: 4 };
+    }
+
     private _parseSseEvent(rawEvent: string): string {
         const dataLines: string[] = [];
-        for (const line of rawEvent.split('\n')) {
+        for (const line of rawEvent.split(/\r?\n/)) {
             if (!line.startsWith('data:')) continue;
             const value = line.slice(5).replace(/^ /, '');
             dataLines.push(value);

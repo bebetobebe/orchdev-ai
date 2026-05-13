@@ -293,6 +293,21 @@ describe('OpenAIRelayWorkerAdapter', () => {
         expect(result.summary).toBe('alphabeta');
     });
 
+    it('execute() accepts CRLF-delimited SSE events from compatible providers', async () => {
+        const events = [
+            `data: ${JSON.stringify({ choices: [{ delta: { content: 'A' } }] })}\r\n\r\n`,
+            `data: ${JSON.stringify({ choices: [{ delta: { content: 'B' } }] })}\r\n\r\n`,
+            'data: [DONE]\r\n\r\n',
+        ];
+        const fake = makeFakeFetch(() => sseResponse(events));
+        const a = new OpenAIRelayWorkerAdapter('relay-1', 'Relay', { fetchImpl: fake.fn });
+        await a.connect();
+        const chunks: string[] = [];
+        const result = await a.execute(makeTask(), { onProgress: (c) => chunks.push(c.text) });
+        expect(chunks).toEqual(['A', 'B']);
+        expect(result.summary).toBe('AB');
+    });
+
     it('execute() stops cleanly at the [DONE] terminator and ignores trailing bytes', async () => {
         const events = [
             `data: ${JSON.stringify({ choices: [{ delta: { content: 'first' } }] })}\n\n`,

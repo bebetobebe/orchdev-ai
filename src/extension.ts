@@ -44,6 +44,7 @@ const SECRET_KEY_RELAY_TOKEN = 'aiDevOrchestrator.relay.authToken';
 const SECRET_KEY_CUSTOM_API_KEY = 'aiDevOrchestrator.customApi.apiKey';
 const LEGACY_TOKEN_SETTING = 'relay.authToken';
 const DEFAULT_FIXED_API_NAME = '固定 API';
+const MINT_API_SITE_URL = 'https://mintapi.cn';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
 
@@ -52,17 +53,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 	const orchestrator = Orchestrator.getInstance();
 
-	// Restore persisted state
-	const saved = context.globalState.get<SerializedState>(STATE_KEY);
-	if (saved) {
-		orchestrator.deserialize(saved);
-		console.log('已从 globalState 恢复编排状态。');
-	}
-
-	// Auto-save on state changes
+	// Auto-save on state changes. Register before restore so any repair done by
+	// deserialize() is immediately persisted and not replayed on next startup.
 	orchestrator.setOnSave(() => {
 		context.globalState.update(STATE_KEY, orchestrator.serialize());
 	});
+
+	// Restore persisted state
+	const saved = context.globalState.get<SerializedState>(STATE_KEY);
+	if (saved) {
+		try {
+			orchestrator.deserialize(saved);
+			console.log('已从 globalState 恢复编排状态。');
+		} catch (error) {
+			console.error('恢复编排状态失败，已重置本地状态。', error);
+			await context.globalState.update(STATE_KEY, undefined);
+			void vscode.window.showWarningMessage('检测到旧版本地状态异常，已自动重置编排数据。请重新打开面板后再试。');
+		}
+	}
 
 	// Migrate any legacy plaintext token from settings.json to SecretStorage
 	// before we touch the worker registry, so the first reconcile already
@@ -397,8 +405,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 			const value = await vscode.window.showInputBox({
 				password: true,
 				ignoreFocusOut: true,
-				prompt: `输入 ${fixedApi.name} 密钥`,
-				placeHolder: current ? '已保存密钥，输入新密钥可替换' : '',
+				prompt: getFixedApiKeyPrompt(fixedApi),
+				placeHolder: current
+					? '已保存密钥，输入新密钥可替换'
+					: (isMintApiConfig(fixedApi) ? '请到 mintapi.cn 获取后粘贴' : ''),
 				value: '',
 			});
 			if (value === undefined) return;
@@ -781,6 +791,25 @@ function getFixedApiSetupIssue(config = getResolvedFixedApiConfig()): string | u
 	return undefined;
 }
 
+function isMintApiConfig(config = getResolvedFixedApiConfig()): boolean {
+	return config.name.trim().toLowerCase() === 'mintapi'
+		|| config.baseUrl.trim().toLowerCase().includes('mintapi.cn');
+}
+
+function getFixedApiKeyPrompt(config = getResolvedFixedApiConfig()): string {
+	if (isMintApiConfig(config)) {
+		return `输入 ${config.name} 密钥（可前往 ${MINT_API_SITE_URL} 获取）`;
+	}
+	return `输入 ${config.name} 密钥`;
+}
+
+function getFixedApiMissingKeyMessage(config = getResolvedFixedApiConfig()): string {
+	if (isMintApiConfig(config)) {
+		return `固定 API“${config.name}”需要密钥，请先到 ${MINT_API_SITE_URL} 获取密钥，再运行“设置固定 API 密钥”或“启用固定 API”。`;
+	}
+	return `固定 API“${config.name}”需要密钥。若你的接口确实不需要密钥，请在 src/config/fixedApiConfig.ts 中把 apiKeyOptional 改为 true。`;
+}
+
 async function quickSetupCustomApi(
 	secrets: vscode.SecretStorage,
 	orchestrator: Orchestrator,
@@ -798,21 +827,21 @@ async function quickSetupCustomApi(
 	const apiKey = await vscode.window.showInputBox({
 		password: true,
 		ignoreFocusOut: true,
-		prompt: fixedApi.apiKeyOptional ? `输入 ${fixedApi.name} 密钥，可留空` : `输入 ${fixedApi.name} 密钥`,
+		prompt: fixedApi.apiKeyOptional ? `${getFixedApiKeyPrompt(fixedApi)}，可留空` : getFixedApiKeyPrompt(fixedApi),
 		placeHolder: currentKey
 			? (
 				fixedApi.apiKeyOptional
 					? '已保存密钥，输入新密钥可替换；留空则清除旧密钥'
 					: '已保存密钥，输入新密钥可替换；留空则继续使用当前密钥'
 			)
-			: fixedApi.apiKeyOptional ? '本地服务通常可留空' : 'sk-...',
+			: fixedApi.apiKeyOptional ? '本地服务通常可留空' : (isMintApiConfig(fixedApi) ? '请到 mintapi.cn 获取后粘贴' : 'sk-...'),
 		value: '',
 	});
 	if (apiKey === undefined) return;
 	const trimmedApiKey = apiKey.trim();
 
 	if (!fixedApi.apiKeyOptional && !trimmedApiKey && !currentKey) {
-		void vscode.window.showWarningMessage(`固定 API“${fixedApi.name}”需要密钥。若你的接口确实不需要密钥，请在 src/config/fixedApiConfig.ts 中把 apiKeyOptional 改为 true。`);
+		void vscode.window.showWarningMessage(getFixedApiMissingKeyMessage(fixedApi));
 		return;
 	}
 
@@ -842,8 +871,9 @@ async function quickSetupCustomApi(
 			: '继续使用已保存密钥。';
 	const toolsNote = fixedApi.enableWorkspaceTools ? '已开启项目文件读写工具' : '当前未开启项目文件读写工具';
 	const commandNote = fixedApi.allowCommandExecution ? '本地命令执行已开启' : '本地命令执行仍保持关闭';
+	const sourceNote = isMintApiConfig(fixedApi) ? ` 密钥请前往 ${MINT_API_SITE_URL} 获取。` : '';
 	void vscode.window.showInformationMessage(
-		`固定 API 执行器“${fixedApi.name}”已就绪，${keyNote} ${toolsNote}；${commandNote}。${workspaceNote}`
+		`固定 API 执行器“${fixedApi.name}”已就绪，${keyNote} ${toolsNote}；${commandNote}。${workspaceNote}${sourceNote}`
 	);
 }
 
@@ -862,8 +892,8 @@ async function testCustomApiConnection(secrets: vscode.SecretStorage): Promise<v
 		return;
 	}
 	if (!fixedApi.apiKeyOptional && authToken.length === 0) {
-		updateCustomApiHealth({ status: 'untested', name, model, message: '固定 API 需要密钥，但当前还没有保存。' });
-		void vscode.window.showWarningMessage('固定 API 需要密钥，请先运行“设置固定 API 密钥”或“启用固定 API”。');
+		updateCustomApiHealth({ status: 'untested', name, model, message: getFixedApiMissingKeyMessage(fixedApi) });
+		void vscode.window.showWarningMessage(getFixedApiMissingKeyMessage(fixedApi));
 		return;
 	}
 	if (typeof globalThis.fetch !== 'function') {
@@ -1032,24 +1062,33 @@ async function testCustomApiResponsesToolCalling(
 			additionalProperties: false,
 		},
 	};
-	const request = async (): Promise<Response> => await globalThis.fetch(`${baseUrl}/responses`, {
+	const buildBody = (forceToolChoice: boolean): Record<string, unknown> => ({
+		model,
+		input: [{ role: 'user', content: [{ type: 'input_text', text: '请调用 workspace_capability_check 工具完成测试。' }] }],
+		tools: [tool],
+		...(forceToolChoice ? { tool_choice: { type: 'function', name: 'workspace_capability_check' } } : {}),
+		...(config.reasoningEffort ? { reasoning: { effort: config.reasoningEffort } } : {}),
+		...(config.disableResponseStorage ? { store: false } : {}),
+	});
+	const request = async (forceToolChoice: boolean): Promise<Response> => await globalThis.fetch(`${baseUrl}/responses`, {
 		method: 'POST',
 		headers,
-		body: JSON.stringify({
-			model,
-			input: [{ role: 'user', content: [{ type: 'input_text', text: '请调用 workspace_capability_check 工具完成测试。' }] }],
-			tools: [tool],
-			tool_choice: { type: 'function', name: 'workspace_capability_check' },
-			...(config.reasoningEffort ? { reasoning: { effort: config.reasoningEffort } } : {}),
-			...(config.disableResponseStorage ? { store: false } : {}),
-		}),
+		body: JSON.stringify(buildBody(forceToolChoice)),
 		signal,
 	});
 
-	const res = await request();
+	let res = await request(true);
 	if (!res.ok) {
 		const body = await safeReadResponseText(res);
-		return { ok: false, message: `工具调用测试 HTTP ${res.status} ${truncateForMessage(body || res.statusText)}` };
+		if (looksLikeToolChoiceCompatibilityError(res.status, body)) {
+			res = await request(false);
+			if (!res.ok) {
+				const retryBody = await safeReadResponseText(res);
+				return { ok: false, message: `工具调用测试 HTTP ${res.status} ${truncateForMessage(retryBody || res.statusText)}` };
+			}
+		} else {
+			return { ok: false, message: `工具调用测试 HTTP ${res.status} ${truncateForMessage(body || res.statusText)}` };
+		}
 	}
 	let payload: unknown;
 	try {

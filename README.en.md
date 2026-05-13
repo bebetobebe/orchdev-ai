@@ -4,7 +4,7 @@ English | [简体中文](README.md)
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.85%2B-blue)
-![Tests](https://img.shields.io/badge/tests-469%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-476%20passed-brightgreen)
 ![Package](https://img.shields.io/badge/package-VSIX-informational)
 
 OrchDev AI is a local development orchestration extension for VS Code and Windsurf. It turns complex engineering work into sessions, tasks, and worker queues, then dispatches those tasks to a fixed API provider, Codex, Claude Code, Gemini, Aider, OpenCode, or an MCP client.
@@ -16,8 +16,8 @@ This is not just a chat panel. The fixed API worker includes a workspace tool br
 You can download the extension from GitHub Releases or build it locally from source.
 
 - Latest release: [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest)
-- Direct VSIX download: [orchdev-ai-0.0.2.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.2.vsix)
-- Local build: run `npm run vsix`, then install the generated `orchdev-ai-0.0.2.vsix`
+- Direct VSIX download: [orchdev-ai-0.0.3.vsix](https://github.com/bebetobebe/orchdev-ai/releases/latest/download/orchdev-ai-0.0.3.vsix)
+- Local build: run `npm run vsix`, then install the generated `orchdev-ai-0.0.3.vsix`
 
 ## Community
 
@@ -28,12 +28,13 @@ You can download the extension from GitHub Releases or build it locally from sou
 1. Install the VSIX.
 2. Open a project folder in VS Code or Windsurf.
 3. Open the command palette and run `OrchDev AI：打开编排面板`.
-4. Click `启用固定 API`. The default packaged provider is MintAPI, using `gpt-5.5` over the Responses API.
-5. Click `测试固定 API`, and confirm the card shows both tool calling and writable execution as available.
-6. Click `安全自检` to verify the read/write path. The self-check writes only `.ai-orchestrator/self-check.md`.
-7. Enter a task such as “Analyze this project and fix the unresponsive button”, then click `执行`.
+4. Click `设置固定 API 密钥` and get a key from `https://mintapi.cn`.
+5. Click `启用固定 API`. The default packaged provider is MintAPI, using `gpt-5.5` over the Responses API.
+6. Click `测试固定 API`, and confirm the card shows both tool calling and writable execution as available.
+7. Click `安全自检` to verify the read/write path. The self-check writes only `.ai-orchestrator/self-check.md`.
+8. Enter a task such as “Analyze this project and fix the unresponsive button”, then click `执行`.
 
-If your MintAPI gateway requires a key, run `OrchDev AI：设置固定 API 密钥`. The key is stored in VS Code SecretStorage, not in source code or `settings.json`.
+If you do not have a MintAPI key yet, get one from `https://mintapi.cn`. The key is stored in VS Code SecretStorage, not in source code or `settings.json`.
 
 ## What It Is For
 
@@ -89,7 +90,7 @@ export const FIXED_API_CONFIG = {
   enableWorkspaceTools: true,
   allowCommandExecution: false,
   maxToolIterations: 20,
-  apiKeyOptional: true,
+  apiKeyOptional: false,
 };
 ```
 
@@ -102,7 +103,7 @@ Important fields:
 - `disableResponseStorage`: sends `store: false` for Responses API requests.
 - `enableWorkspaceTools`: allows file listing, search, reading, and writing inside the workspace.
 - `allowCommandExecution`: controls whether the model may run local commands. It is disabled by default.
-- `apiKeyOptional`: keep `true` if the service does not require a key; set `false` and save a key through the command if needed.
+- `apiKeyOptional`: keep `false` for the packaged MintAPI profile, then save the key through the command.
 
 ## Workspace Tool Boundary
 
@@ -149,7 +150,7 @@ The orchestrator owns sessions, tasks, states, queues, and recovery policy. Actu
 ### From Release
 
 1. Open [GitHub Releases](https://github.com/bebetobebe/orchdev-ai/releases/latest).
-2. Download `orchdev-ai-0.0.2.vsix`.
+2. Download `orchdev-ai-0.0.3.vsix`.
 3. In VS Code or Windsurf, choose `Install from VSIX...` from the Extensions view.
 4. Run `OrchDev AI：打开编排面板`.
 
@@ -159,7 +160,7 @@ The orchestrator owns sessions, tasks, states, queues, and recovery policy. Actu
 npm install
 npm run verify
 npm run vsix
-code --install-extension orchdev-ai-0.0.2.vsix
+code --install-extension orchdev-ai-0.0.3.vsix
 ```
 
 Windsurf also supports VSIX installation. If the `code` command is unavailable, run `Shell Command: Install 'code' command in PATH` from the VS Code command palette.
@@ -168,7 +169,7 @@ Windsurf also supports VSIX installation. If the `code` command is unavailable, 
 
 - If you previously installed the legacy `AI 开发编排` package, uninstall it before installing `OrchDev AI`.
 - Keeping both packages installed can make the legacy commands and views compete with the new build, which may look like dead buttons, failed session creation, or mismatched UI state.
-- If the panel still behaves oddly, verify that the installed file is `orchdev-ai-0.0.2.vsix` instead of an older `0.0.1` build.
+- If the panel still behaves oddly, verify that the installed file is `orchdev-ai-0.0.3.vsix` instead of an older `0.0.1` or `0.0.2` build.
 
 ## Commands
 
@@ -230,7 +231,7 @@ npm run vsix
 Current verification status:
 
 - 15 test files
-- 469 unit tests
+- 476 unit tests
 - Production build passing
 - Bundle smoke passing
 

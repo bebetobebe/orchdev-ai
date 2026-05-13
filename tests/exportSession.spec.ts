@@ -139,6 +139,24 @@ describe('exportSessionMarkdown', () => {
         expect(md).toContain('step 1\nstep 2');
     });
 
+    it('normalizes malformed task results instead of throwing', () => {
+        const md = exportSessionMarkdown(makeSession(), [
+            makeTask({
+                result: {
+                    summary: 123,
+                    artifacts: [{ type: 'bad', name: 'bad', content: 'x' }],
+                    logs: [1, 'kept log'],
+                    modifiedFiles: ['src/fix.ts', 7],
+                } as never,
+            }),
+        ]);
+
+        expect(md).toContain('**结果：** 执行器没有返回有效摘要。');
+        expect(md).toContain('- src/fix.ts');
+        expect(md).toContain('kept log');
+        expect(md).not.toContain('文件：bad');
+    });
+
     it('omits artifacts section when there are none', () => {
         const md = exportSessionMarkdown(makeSession(), [
             makeTask({

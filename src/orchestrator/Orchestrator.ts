@@ -1,5 +1,5 @@
 import { EventEmitter } from "../events";
-import { IWorkerAdapter, Session, Task, TaskRecovery, TaskResult, Worker } from "../types";
+import { Artifact, IWorkerAdapter, Session, Task, TaskRecovery, TaskResult, Worker } from "../types";
 import { calculateRecoveryDelayMs, classifyInterruption, createTaskRecovery } from "./interruptionRecovery";
 
 export interface SerializedState {
@@ -63,6 +63,104 @@ const DEFAULT_RECOVERY_OPTIONS: RecoveryOptions = {
 interface RetryDelay {
     timer: ReturnType<typeof setTimeout>;
     resolve: (shouldRetry: boolean) => void;
+}
+
+const TASK_MODES = new Set<Task['mode']>(['Ask', 'Plan', 'Execute']);
+const TASK_STATUSES = new Set<Task['status']>(['pending', 'queued', 'running', 'completed', 'failed', 'canceled']);
+const RECOVERY_TYPES = new Set<TaskRecovery['type']>([
+    'quota-exhausted',
+    'rate-limited',
+    'response-truncated',
+    'tool-limit',
+    'terminal-stuck',
+    'authorization-required',
+    'network',
+    'internal',
+    'provider-overloaded',
+    'version-outdated',
+    'unknown',
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function finiteTimestamp(value: unknown, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function optionalFiniteTimestamp(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+function sanitizeRecovery(value: unknown): TaskRecovery | undefined {
+    if (!isRecord(value)) return undefined;
+    const type = RECOVERY_TYPES.has(value.type as TaskRecovery['type'])
+        ? value.type as TaskRecovery['type']
+        : 'unknown';
+    const title = nonEmptyString(value.title) ?? '恢复提示';
+    const message = typeof value.message === 'string' ? value.message : '';
+    const action = typeof value.action === 'string' ? value.action : '';
+    const recovery: TaskRecovery = {
+        type,
+        title,
+        message,
+        action,
+        retryable: value.retryable === true,
+        autoRetry: value.autoRetry === true,
+    };
+    if (typeof value.attempt === 'number' && Number.isFinite(value.attempt)) recovery.attempt = Math.max(0, Math.floor(value.attempt));
+    if (typeof value.maxAttempts === 'number' && Number.isFinite(value.maxAttempts)) recovery.maxAttempts = Math.max(0, Math.floor(value.maxAttempts));
+    if (typeof value.delayMs === 'number' && Number.isFinite(value.delayMs)) recovery.delayMs = Math.max(0, value.delayMs);
+    if (typeof value.nextRetryAt === 'number' && Number.isFinite(value.nextRetryAt)) recovery.nextRetryAt = value.nextRetryAt;
+    return recovery;
+}
+
+function sanitizeTaskResult(value: unknown): TaskResult | undefined {
+    if (!isRecord(value)) return undefined;
+    const summary = typeof value.summary === 'string' ? value.summary : '';
+    const artifacts: Artifact[] = Array.isArray(value.artifacts)
+        ? value.artifacts.flatMap(artifact => {
+            if (!isRecord(artifact)) return [];
+            const type: Artifact['type'] | undefined = artifact.type === 'file' || artifact.type === 'snippet' ? artifact.type : undefined;
+            const name = nonEmptyString(artifact.name);
+            const content = typeof artifact.content === 'string' ? artifact.content : '';
+            return type && name ? [{ type, name, content }] : [];
+        })
+        : [];
+    const logs = Array.isArray(value.logs)
+        ? value.logs.filter((log): log is string => typeof log === 'string')
+        : [];
+    const modifiedFiles = Array.isArray(value.modifiedFiles)
+        ? value.modifiedFiles.filter((file): file is string => typeof file === 'string' && file.trim().length > 0)
+        : undefined;
+    const recovery = sanitizeRecovery(value.recovery);
+    return {
+        summary,
+        artifacts,
+        logs,
+        ...(modifiedFiles && modifiedFiles.length > 0 ? { modifiedFiles } : {}),
+        ...(recovery ? { recovery } : {}),
+    };
+}
+
+function normalizeTaskResult(value: unknown, fallbackSummary: string): TaskResult {
+    const sanitized = sanitizeTaskResult(value);
+    if (!sanitized) {
+        return {
+            summary: fallbackSummary,
+            artifacts: [],
+            logs: [],
+        };
+    }
+    return {
+        ...sanitized,
+        summary: sanitized.summary.trim() || fallbackSummary,
+    };
 }
 
 export class Orchestrator {
@@ -245,7 +343,10 @@ export class Orchestrator {
         this.onStateChange.emit();
 
         try {
-            const result = await adapter.execute(summaryTask);
+            const result = normalizeTaskResult(
+                await adapter.execute(summaryTask),
+                '执行器已返回，但没有生成有效摘要。'
+            );
             session.summary = result.summary;
             this._tasks.delete(summaryTask.id);
             session.taskIds = session.taskIds.filter(id => id !== summaryTask.id);
@@ -605,8 +706,8 @@ export class Orchestrator {
                 return;
             }
             task.status = 'completed';
-            task.result = result;
-            task.recovery = result.recovery;
+            task.result = normalizeTaskResult(result, '执行器已结束，但没有返回有效摘要。');
+            task.recovery = task.result.recovery;
             task.completedAt = Date.now();
             // Final result is now in `task.result`; the live preview is
             // redundant and would just confuse the webview's render branch.
@@ -1038,26 +1139,109 @@ export class Orchestrator {
         for (const taskId of Array.from(this._retryDelays.keys())) {
             this._clearRetryDelay(taskId);
         }
-        for (const s of state.sessions) {
-            this._sessions.set(s.id, s);
-        }
-        for (const t of state.tasks) {
-            // Running tasks from a previous session are orphaned; mark them failed
-            if (t.status === 'running') {
-                t.status = 'failed';
-                t.workerId = undefined;
+        const now = Date.now();
+        const rawSessions = Array.isArray(state?.sessions) ? state.sessions : [];
+        const rawTasks = Array.isArray(state?.tasks) ? state.tasks : [];
+        const sessionOrder: string[] = [];
+
+        for (const rawSession of rawSessions) {
+            if (!isRecord(rawSession)) continue;
+            const id = nonEmptyString(rawSession.id);
+            const name = nonEmptyString(rawSession.name);
+            const goal = nonEmptyString(rawSession.goal);
+            if (!id || !name || !goal || this._sessions.has(id)) continue;
+            const taskIds = Array.isArray(rawSession.taskIds)
+                ? rawSession.taskIds.filter((taskId): taskId is string => typeof taskId === 'string' && taskId.trim().length > 0)
+                : [];
+            const session: Session = {
+                id,
+                name,
+                goal,
+                createdAt: finiteTimestamp(rawSession.createdAt, now),
+                taskIds,
+            };
+            if (typeof rawSession.summary === 'string' && rawSession.summary.length > 0) {
+                session.summary = rawSession.summary;
             }
-            // Queued tasks lost their worker queue across restart; return them to pending
-            if (t.status === 'queued') {
-                t.status = 'pending';
-                t.workerId = undefined;
-                t.result = undefined;
-                t.completedAt = undefined;
-            }
-            t.recovery = undefined;
-            this._tasks.set(t.id, t);
+            this._sessions.set(id, session);
+            sessionOrder.push(id);
         }
+
+        for (const rawTask of rawTasks) {
+            if (!isRecord(rawTask)) continue;
+            const id = nonEmptyString(rawTask.id);
+            const sessionId = nonEmptyString(rawTask.sessionId);
+            const prompt = nonEmptyString(rawTask.prompt);
+            const mode = TASK_MODES.has(rawTask.mode as Task['mode']) ? rawTask.mode as Task['mode'] : undefined;
+            const status = TASK_STATUSES.has(rawTask.status as Task['status']) ? rawTask.status as Task['status'] : undefined;
+            if (!id || !sessionId || !prompt || !mode || !status || this._tasks.has(id) || !this._sessions.has(sessionId)) {
+                continue;
+            }
+
+            const task: Task = {
+                id,
+                sessionId,
+                prompt,
+                mode,
+                status,
+                createdAt: finiteTimestamp(rawTask.createdAt, now),
+            };
+            const workerId = nonEmptyString(rawTask.workerId);
+            if (workerId) {
+                task.workerId = workerId;
+            }
+            const completedAt = optionalFiniteTimestamp(rawTask.completedAt);
+            if (completedAt) {
+                task.completedAt = completedAt;
+            }
+            const result = sanitizeTaskResult(rawTask.result);
+            if (result) {
+                task.result = result;
+            }
+            const recovery = sanitizeRecovery(rawTask.recovery) ?? task.result?.recovery;
+            if (recovery) {
+                task.recovery = recovery;
+            }
+
+            // Running tasks from a previous session are orphaned; mark them failed.
+            if (task.status === 'running') {
+                task.status = 'failed';
+                task.workerId = undefined;
+                task.completedAt = task.completedAt ?? now;
+                task.result = this._buildFailureResult('扩展重启后中断，任务未继续执行。', task.recovery);
+                task.recovery = undefined;
+            }
+            // Queued tasks lost their worker queue across restart; return them to pending.
+            if (task.status === 'queued') {
+                task.status = 'pending';
+                task.workerId = undefined;
+                task.result = undefined;
+                task.completedAt = undefined;
+                task.recovery = undefined;
+            }
+
+            this._tasks.set(id, task);
+        }
+
+        for (const sessionId of sessionOrder) {
+            const session = this._sessions.get(sessionId);
+            if (!session) continue;
+            const seen = new Set<string>();
+            const cleanedTaskIds = session.taskIds.filter(taskId => {
+                if (seen.has(taskId)) return false;
+                if (!this._tasks.has(taskId)) return false;
+                seen.add(taskId);
+                return true;
+            });
+            const orphanTasks = Array.from(this._tasks.values())
+                .filter(task => task.sessionId === sessionId && !seen.has(task.id))
+                .sort((a, b) => a.createdAt - b.createdAt)
+                .map(task => task.id);
+            session.taskIds = [...cleanedTaskIds, ...orphanTasks];
+        }
+
         this.onStateChange.emit();
+        this.triggerSave();
     }
 
     private generateId(): string {

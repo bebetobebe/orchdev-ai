@@ -256,6 +256,33 @@ describe('Orchestrator', () => {
             expect(a.worker.status).toBe('available');
         });
 
+        it('normalizes malformed worker results before storing them', async () => {
+            const adapter = {
+                worker: { id: 'w-bad', name: 'Bad Worker', type: 'cli' as const, status: 'available' as const },
+                execute: vi.fn(async () => ({
+                    summary: 123,
+                    artifacts: [{ type: 'wat', name: 'bad', content: 'x' }, { type: 'file', name: 'src/a.ts', content: 7 }],
+                    logs: [1, 'kept log'],
+                    modifiedFiles: ['src/a.ts', 42],
+                } as never)),
+                connect: vi.fn(async () => undefined),
+                disconnect: vi.fn(async () => undefined),
+            };
+            o.registerWorkerAdapter(adapter);
+            const s = o.createSession('s', 'g')!;
+            const t = o.createTask(s.id, 'prompt', 'Execute')!;
+
+            expect(await o.dispatchTask(t.id, adapter.worker.id)).toBe('started');
+            await flush();
+
+            const done = o.getTask(t.id)!;
+            expect(done.status).toBe('completed');
+            expect(done.result?.summary).toBe('执行器已结束，但没有返回有效摘要。');
+            expect(done.result?.artifacts).toEqual([{ type: 'file', name: 'src/a.ts', content: '' }]);
+            expect(done.result?.logs).toEqual(['kept log']);
+            expect(done.result?.modifiedFiles).toEqual(['src/a.ts']);
+        });
+
         it('queues a second task while the worker is busy, then auto-runs it', async () => {
             const a = registerConnected(o, 'w1');
             const s = o.createSession('s', 'g')!;
@@ -663,6 +690,76 @@ describe('Orchestrator', () => {
             expect(o2.getTask(tQueue.id)!.status).toBe('pending');
             expect(o2.getTask(tQueue.id)!.workerId).toBeUndefined();
             expect(o2.getAllSessions()).toHaveLength(1);
+        });
+
+        it('sanitizes corrupted persisted state and saves the repaired snapshot', () => {
+            const save = vi.fn();
+            o.setOnSave(save);
+
+            expect(() => o.deserialize({
+                sessions: [
+                    null,
+                    {
+                        id: 's1',
+                        name: '  Session  ',
+                        goal: '  Goal  ',
+                        createdAt: 'bad',
+                        taskIds: ['missing', 'running', 'running'],
+                    },
+                    { id: '', name: 'bad', goal: 'bad', taskIds: [] },
+                ],
+                tasks: [
+                    {
+                        id: 'running',
+                        sessionId: 's1',
+                        prompt: '  run  ',
+                        mode: 'Execute',
+                        status: 'running',
+                        createdAt: 0,
+                        workerId: 'w1',
+                        result: {
+                            summary: 42,
+                            artifacts: [{ type: 'file', name: 'a.ts', content: 'x' }, { type: 'bad', name: 'b', content: 'x' }],
+                            logs: [1, 'log'],
+                        },
+                    },
+                    {
+                        id: 'queued',
+                        sessionId: 's1',
+                        prompt: 'queue',
+                        mode: 'Ask',
+                        status: 'queued',
+                        createdAt: 1,
+                        workerId: 'w1',
+                        result: { summary: 'old', artifacts: [], logs: [] },
+                    },
+                    {
+                        id: 'orphan',
+                        sessionId: 's1',
+                        prompt: 'orphan',
+                        mode: 'Plan',
+                        status: 'completed',
+                        createdAt: 2,
+                        result: { summary: 'done', artifacts: [], logs: [], modifiedFiles: ['src/a.ts', 7] },
+                    },
+                    { id: 'bad-mode', sessionId: 's1', prompt: 'bad', mode: 'Other', status: 'pending', createdAt: 3 },
+                    { id: 'missing-session', sessionId: 'ghost', prompt: 'bad', mode: 'Ask', status: 'pending', createdAt: 4 },
+                ],
+            } as never)).not.toThrow();
+
+            expect(o.getAllSessions()).toHaveLength(1);
+            expect(o.getSession('s1')?.name).toBe('Session');
+            expect(o.getSession('s1')?.goal).toBe('Goal');
+            expect(o.getSession('s1')?.taskIds).toEqual(['running', 'queued', 'orphan']);
+            expect(o.getTask('running')?.status).toBe('failed');
+            expect(o.getTask('running')?.workerId).toBeUndefined();
+            expect(o.getTask('running')?.result?.summary).toContain('扩展重启后中断');
+            expect(o.getTask('queued')?.status).toBe('pending');
+            expect(o.getTask('queued')?.result).toBeUndefined();
+            expect(o.getTask('orphan')?.result?.modifiedFiles).toEqual(['src/a.ts']);
+            expect(o.getTask('bad-mode')).toBeUndefined();
+            expect(o.getTask('missing-session')).toBeUndefined();
+            expect(save).toHaveBeenCalled();
         });
     });
 
